@@ -11,6 +11,8 @@ export type WeakKey = {
 export const RECENT_TESTS = 20;
 /** Fewer presses than this is too little to judge a key by. */
 export const MIN_PRESSES = 10;
+/** Until this many recent tests carry press counts, old results (raw misses) still decide. */
+export const MIN_MEASURED_TESTS = 5;
 /** One slip is not a weakness. */
 export const MIN_MISSES = 2;
 
@@ -18,7 +20,7 @@ export const MIN_MISSES = 2;
 export function weakKeys(results: readonly SavedResult[], limit = 5): WeakKey[] {
   const recent = [...results].sort((a, b) => b.finishedAt - a.finishedAt).slice(0, RECENT_TESTS);
   const measured = recent.filter((r) => r.keyPresses);
-  if (measured.length === 0) return byMisses(recent, limit);
+  if (measured.length < MIN_MEASURED_TESTS) return byMisses(recent, limit);
 
   const misses = sum(measured.map((r) => r.missedKeys));
   const presses = sum(measured.map((r) => r.keyPresses!));
