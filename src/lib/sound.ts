@@ -3,8 +3,25 @@ import { loadSettings, storeSettings, type Settings } from './settings';
 
 // All sounds are synthesised with Web Audio, so there are no audio files to license or download.
 
+let settingsUser: string | null = null;
 let settings: Settings = loadSettings();
 const listeners = new Set<() => void>();
+let onChange: ((s: Settings) => void) | null = null;
+
+/** Loads the signed-in account's settings. `changed` hears her own edits, for syncing. */
+export function switchSettings(userId: string | null, changed: ((s: Settings) => void) | null = null): void {
+  settingsUser = userId;
+  onChange = changed;
+  applySettings(loadSettings(userId));
+}
+
+/** Settings that arrived from the server; stored locally but not echoed back. */
+export function applySettings(next: Settings): void {
+  settings = next;
+  storeSettings(settings, settingsUser);
+  if (!settings.music) stopMusic();
+  listeners.forEach((l) => l());
+}
 let ctx: AudioContext | null = null;
 let audioBroken = false;
 let musicTimer: number | null = null;
@@ -22,7 +39,8 @@ export function useSettings(): [Settings, (next: Partial<Settings>) => void] {
 
 function updateSettings(next: Partial<Settings>): void {
   settings = { ...settings, ...next };
-  storeSettings(settings);
+  storeSettings(settings, settingsUser);
+  onChange?.(settings);
   if (settings.music) startMusic();
   else stopMusic();
   listeners.forEach((l) => l());

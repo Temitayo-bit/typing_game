@@ -12,9 +12,10 @@ type Props = {
   unlocked: StepRef;
   go: (r: Route) => void;
   practise: (s: Selection) => void;
+  name: string;
 };
 
-export function HomePage({ results, unlocked, go, practise }: Props) {
+export function HomePage({ results, unlocked, go, practise, name }: Props) {
   const streak = dayStreak(results);
   const best30 = personalBest(results, 'time-30')?.wpm;
   const speedTests = results.filter((r) => isSpeedTest(r.mode));
@@ -26,7 +27,7 @@ export function HomePage({ results, unlocked, go, practise }: Props) {
       <section className="flex flex-wrap items-stretch gap-6">
         <Card className="flex min-w-0 flex-[999_1_520px] flex-col gap-4 sm:p-10">
           <div className="text-[15px] font-bold tracking-[0.08em] text-berry uppercase">{greetingTime()}</div>
-          <h1 className="m-0 font-display text-4xl leading-tight font-semibold sm:text-[52px]">Hi Ogenna, ready to type something sweet?</h1>
+          <h1 className="m-0 font-display text-4xl leading-tight font-semibold sm:text-[52px]">Hi {name}, ready to type something sweet?</h1>
           <p className="m-0 max-w-xl text-lg leading-normal text-muted">
             Ten minutes a day is all it takes. Pick up where you left off, or jump into a quick test.
           </p>

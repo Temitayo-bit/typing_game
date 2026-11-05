@@ -4,8 +4,39 @@ import { isModeKey, type ModeKey } from './modes';
 
 export type SavedResult = Result & { id?: number; mode: ModeKey; finishedAt: number };
 
-export const db = new Dexie('typing-game') as Dexie & { results: EntityTable<SavedResult, 'id'> };
-db.version(1).stores({ results: '++id, mode, finishedAt' });
+type HistoryDb = Dexie & { results: EntityTable<SavedResult, 'id'> };
+
+function openDb(name: string): HistoryDb {
+  const d = new Dexie(name) as HistoryDb;
+  d.version(1).stores({ results: '++id, mode, finishedAt' });
+  return d;
+}
+
+/** The store in use. Each signed-in account gets its own, so two people on one browser never mix. */
+export let db: HistoryDb = openDb('typing-game');
+
+export function switchHistory(userId: string | null): void {
+  const name = userId ? `typing-game-${userId}` : 'typing-game';
+  if (db.name === name) return;
+  db.close();
+  db = openDb(name);
+}
+
+/** Adds results that aren't stored yet (same finish time and mode). Returns how many were added. */
+export async function addMissing(results: readonly SavedResult[]): Promise<number> {
+  let added = 0;
+  await db.transaction('rw', db.results, async () => {
+    for (const r of results) {
+      const same = await db.results.where('finishedAt').equals(r.finishedAt).filter((e) => e.mode === r.mode).count();
+      if (same === 0) {
+        const { id: _id, ...rest } = r;
+        await db.results.add(rest);
+        added++;
+      }
+    }
+  });
+  return added;
+}
 
 export async function saveResult(result: SavedResult): Promise<void> {
   await db.results.add(result);
@@ -19,7 +50,7 @@ export async function exportResults(): Promise<string> {
   return JSON.stringify({ version: 1, results: await db.results.toArray() });
 }
 
-/** Adds results from an export file, skipping ones already stored. Returns how many were added. */
+/** Adds results from an export file, skipping ones already stored (same finish time and mode). */
 export async function importResults(json: string): Promise<number> {
   let parsed: unknown;
   try {
@@ -27,22 +58,7 @@ export async function importResults(json: string): Promise<number> {
   } catch {
     throw new Error("That file isn't a progress export");
   }
-  const results = parseExport(parsed);
-  let added = 0;
-  await db.transaction('rw', db.results, async () => {
-    for (const r of results) {
-      const same = await db.results
-        .where('finishedAt')
-        .equals(r.finishedAt)
-        .filter((e) => e.mode === r.mode && e.wpm === r.wpm)
-        .count();
-      if (same === 0) {
-        await db.results.add(r);
-        added++;
-      }
-    }
-  });
-  return added;
+  return addMissing(parseExport(parsed));
 }
 
 export function parseExport(value: unknown): SavedResult[] {

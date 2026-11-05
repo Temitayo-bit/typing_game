@@ -2,12 +2,13 @@ export const themes = ['rose', 'lavender', 'peach', 'mint'] as const;
 export type Theme = (typeof themes)[number];
 export type Settings = { sounds: boolean; music: boolean; theme: Theme };
 
-const KEY = 'typing-game-settings';
-const defaults: Settings = { sounds: true, music: false, theme: 'rose' };
+const keyFor = (userId: string | null) => (userId ? `typing-game-settings-${userId}` : 'typing-game-settings');
+export const defaultSettings: Settings = { sounds: true, music: false, theme: 'rose' };
+const defaults = defaultSettings;
 
-export function loadSettings(): Settings {
+export function loadSettings(userId: string | null = null): Settings {
   try {
-    return parseSettings(localStorage.getItem(KEY));
+    return parseSettings(localStorage.getItem(keyFor(userId)));
   } catch {
     return defaults;
   }
@@ -30,9 +31,9 @@ export function parseSettings(raw: string | null): Settings {
 }
 
 /** Settings are a convenience; if storage is blocked they just reset next visit. */
-export function storeSettings(s: Settings): void {
+export function storeSettings(s: Settings, userId: string | null = null): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(s));
+    localStorage.setItem(keyFor(userId), JSON.stringify(s));
   } catch {
     // Private mode or blocked storage: nothing to recover.
   }

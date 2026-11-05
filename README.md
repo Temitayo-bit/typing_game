@@ -14,7 +14,18 @@ A typing practice web app with beginner touch-typing lessons, adaptive speed tes
 - **Themes and sounds:** four colour themes, optional key sounds and soft background music (off by default), all synthesised in the browser.
 - Installable as an app (PWA) and works offline.
 
-Results are stored in the browser with IndexedDB.
+Results are saved in the browser first (IndexedDB) and backed up to Supabase when signed in, so the app keeps working offline.
+
+## Accounts (optional)
+
+With Supabase configured, sign-in is by email magic link, limited to an allowlist. Each account has its own profile (name, photo, optional birthday and speed goal), settings and results, separated by row-level security in the database and by a separate local store per account in the browser.
+
+1. Apply the SQL files in `supabase/migrations/` to your project.
+2. Add allowed emails: `insert into private.signup_allowlist (email) values ('you@example.com');`
+3. In Supabase Auth settings, set the Site URL (and redirect URLs) to where the app is hosted.
+4. Copy `.env.example` to `.env.local` and fill in the project URL and publishable key.
+
+Without these variables the app runs fully offline for a single person.
 
 ## Getting started
 
@@ -42,4 +53,6 @@ npm run dev
 
 ## Tech
 
-Vite, React, TypeScript (strict), Tailwind CSS, Dexie (IndexedDB), vite-plugin-pwa, Vitest.
+Vite, React, TypeScript (strict), Tailwind CSS, Dexie (IndexedDB), Supabase (auth, Postgres, storage), vite-plugin-pwa, Vitest.
+
+A scheduled GitHub Action pings the database every few days so a free-tier project doesn't pause.
