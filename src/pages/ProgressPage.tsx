@@ -3,14 +3,43 @@ import { Button, Card } from '../components/ui';
 import { keyLabel } from '../lib/format';
 import { missRate, weakKeys } from '../lib/weakKeys';
 import { exportResults, importResults, type SavedResult } from '../lib/history';
-import { reachedMilestones } from '../lib/milestones';
 import { isSpeedTest, type Selection } from '../lib/modes';
-import { activityByDay, dayStreak, longestStreak, personalBest } from '../lib/progress';
+import { activityByDay, dayStreak, longestStreak, personalBest, type StepRef } from '../lib/progress';
+import type { Route } from '../lib/route';
+import { Journey } from '../components/Journey';
 import { useRef, useState } from 'react';
 
-type Props = { results: SavedResult[]; practise: (s: Selection) => void; onImported: () => void };
+type Props = { results: SavedResult[]; unlocked: StepRef; go: (r: Route) => void; practise: (s: Selection) => void; onImported: () => void };
 
-export function ProgressPage({ results, practise, onImported }: Props) {
+const TABS = [
+  { id: 'milestones', label: 'Milestones' },
+  { id: 'stats', label: 'Stats' },
+] as const;
+
+export function ProgressPage(props: Props) {
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('milestones');
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="m-0 font-display text-[34px] font-semibold">Look how far you have come</h1>
+      <div className="flex gap-2" role="tablist" aria-label="Progress views">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`min-h-11 rounded-full border-2 px-5 font-bold ${tab === t.id ? 'border-accent bg-petal text-wine' : 'border-line text-muted hover:bg-cream'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'milestones' ? <Journey results={props.results} unlocked={props.unlocked} go={props.go} /> : <Stats {...props} />}
+    </div>
+  );
+}
+
+function Stats({ results, practise, onImported }: Props) {
   const speed = results.filter((r) => isSpeedTest(r.mode));
   const recent = [...speed].sort((a, b) => a.finishedAt - b.finishedAt).slice(-30);
   const bests = new Set<number>();
@@ -25,7 +54,6 @@ export function ProgressPage({ results, practise, onImported }: Props) {
   const minutes = Math.round(results.reduce((s, r) => s + r.durationMs, 0) / 60_000);
   const weak = weakKeys(results, 5);
   const days = activityByDay(results, 70);
-  const milestones = reachedMilestones(results);
 
   const tiles = [
     { label: 'Best 30s', value: fmtWpm(personalBest(results, 'time-30')?.wpm) },
@@ -36,7 +64,6 @@ export function ProgressPage({ results, practise, onImported }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="m-0 font-display text-[34px] font-semibold">Look how far you have come</h1>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         {tiles.map((t) => (
           <div key={t.label} className="rounded-[22px] border border-line bg-white p-5">
@@ -87,18 +114,6 @@ export function ProgressPage({ results, practise, onImported }: Props) {
           </span>
         )}
       </Card>
-      {milestones.length > 0 && (
-        <Card className="flex flex-col gap-3">
-          <span className="font-bold">Milestones</span>
-          <div className="flex flex-wrap gap-2">
-            {milestones.map((m) => (
-              <span key={m.id} className="rounded-full bg-blush px-4 py-2 text-sm font-bold text-wine">
-                {m.title}
-              </span>
-            ))}
-          </div>
-        </Card>
-      )}
       <Backup onImported={onImported} />
     </div>
   );

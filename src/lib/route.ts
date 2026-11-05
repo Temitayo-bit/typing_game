@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { findLevel } from '../data/exams';
 import { findLesson } from '../data/lessons';
 
 export type Route =
@@ -6,6 +7,7 @@ export type Route =
   | { page: 'practice' }
   | { page: 'lessons' }
   | { page: 'lesson'; lessonId: number }
+  | { page: 'exam'; level: number }
   | { page: 'progress' }
   | { page: 'notes' }
   | { page: 'profile' };
@@ -20,13 +22,18 @@ export function parseRoute(hash: string): Route {
     case 'profile':
       if (page === 'lessons' && arg && /^[1-9]\d*$/.test(arg) && findLesson(Number(arg))) return { page: 'lesson', lessonId: Number(arg) };
       return { page };
+    case 'exam':
+      if (arg && /^[1-9]\d*$/.test(arg) && findLevel(Number(arg))) return { page: 'exam', level: Number(arg) };
+      return { page: 'lessons' };
     default:
       return { page: 'home' };
   }
 }
 
 export function routeHash(r: Route): string {
-  return r.page === 'lesson' ? `#/lessons/${r.lessonId}` : r.page === 'home' ? '#/' : `#/${r.page}`;
+  if (r.page === 'lesson') return `#/lessons/${r.lessonId}`;
+  if (r.page === 'exam') return `#/exam/${r.level}`;
+  return r.page === 'home' ? '#/' : `#/${r.page}`;
 }
 
 export function useRoute(): [Route, (r: Route) => void] {

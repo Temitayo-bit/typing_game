@@ -4,7 +4,8 @@ import { findLesson, keysUpTo, lessons, PASS_ACCURACY, STEPS_PER_LESSON } from '
 import type { Result } from '../game/stats';
 import type { SavedResult } from '../lib/history';
 import { lessonKey, type ModeKey } from '../lib/modes';
-import { isUnlocked, MIN_PASS_CHARS, nextStep, passedStep, passedStepsOf, type StepRef } from '../lib/progress';
+import { examOpen, isUnlocked, MIN_PASS_CHARS, nextStep, passedExam, passedStep, passedStepsOf, type StepRef } from '../lib/progress';
+import { lessonsInLevel } from '../data/exams';
 import type { Route } from '../lib/route';
 import { Card } from '../components/ui';
 import { Practice } from './Practice';
@@ -27,12 +28,15 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
   const [showAll, setShowAll] = useState(false);
   const step = chosen ?? firstOpen ?? 1;
 
-  const goNext = useCallback(() => {
+  const endsLevel = lesson !== undefined && lesson.id === lessonsInLevel(lesson.level).at(-1)?.id && step === STEPS_PER_LESSON;
+  const examLevel = endsLevel && !passedExam(results, lesson.level) ? lesson.level : null;
+  const goNext = () => {
+    if (examLevel !== null) return go({ page: 'exam', level: examLevel });
     const next = nextStep({ lessonId, step });
     if (!next) return;
     if (next.lessonId === lessonId) setChosen(next.step);
     else go({ page: 'lesson', lessonId: next.lessonId });
-  }, [lessonId, step, go, setChosen]);
+  };
 
   // Pin the step so unlocking the next one doesn't swap out the result screen.
   const finish = useCallback(
@@ -44,9 +48,17 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
   );
 
   if (!lesson || !isUnlocked({ lessonId, step: 1 }, unlocked)) {
+    const waitingOn = lesson && lesson.level > 1 && !passedExam(results, lesson.level - 1) && examOpen(results, lesson.level - 1) ? lesson.level - 1 : null;
     return (
       <Card className="text-center">
-        <p className="text-lg">This lesson is still locked. Finish the one before it first.</p>
+        <p className="text-lg">
+          {waitingOn ? `This lesson opens once you pass the level ${waitingOn} exam.` : 'This lesson is still locked. Finish the one before it first.'}
+        </p>
+        {waitingOn && (
+          <button className="mt-4 mr-6 font-bold text-berry" onClick={() => go({ page: 'exam', level: waitingOn })}>
+            Take the level {waitingOn} exam
+          </button>
+        )}
         <button className="mt-4 font-bold text-berry" onClick={() => go({ page: 'lessons' })}>
           Back to all lessons
         </button>
@@ -89,7 +101,13 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
           unlocked={unlocked}
           onFinish={finish}
           guide={drill.hideKeyboard ? undefined : { unlocked: keysUpTo(lesson.id), fresh: lesson.newKeys }}
-          lessonOutcome={(r) => (passedStep(r) ? { passed: true, hasNext: !isLast } : { passed: false, tooShort: r.correctChars < MIN_PASS_CHARS })}
+          lessonOutcome={(r) =>
+            passedStep(r)
+              ? examLevel !== null
+                ? { passed: true, hasNext: true, message: `Lesson ${lesson.id} done! The level ${lesson.level} exam is open now.`, nextLabel: 'Go to the exam' }
+                : { passed: true, hasNext: !isLast }
+              : { passed: false, tooShort: r.correctChars < MIN_PASS_CHARS }
+          }
           onNextLesson={goNext}
         />
         <p className="m-0 text-[15px] text-muted">

@@ -1,4 +1,5 @@
 import { drillFor, type Drill } from '../data/drills';
+import { EXAM_SECONDS, findLevel } from '../data/exams';
 import { findLesson } from '../data/lessons';
 import type { Mode, Rules } from '../game/engine';
 
@@ -8,15 +9,18 @@ export type Selection =
   | { kind: 'pack'; packId: string }
   | { kind: 'lesson'; lessonId: number; step: number }
   | { kind: 'weak'; keys: string[] }
-  | { kind: 'note'; noteId: string };
+  | { kind: 'note'; noteId: string }
+  | { kind: 'exam'; level: number };
 
 export type LessonKey = `lesson-${number}-${number}`;
+export type ExamKey = `exam-${number}`;
 
 export type ModeKey =
   | `time-${number}`
   | `words-${number}`
   | `pack-${string}`
   | LessonKey
+  | ExamKey
   | 'weak-keys'
   | `note-${string}`;
 
@@ -34,11 +38,24 @@ export function selectionKey(s: Selection): ModeKey {
       return 'weak-keys';
     case 'note':
       return `note-${s.noteId}`;
+    case 'exam':
+      return examKey(s.level);
   }
 }
 
 export function lessonKey(lessonId: number, step: number): LessonKey {
   return `lesson-${lessonId}-${step}`;
+}
+
+export function examKey(level: number): ExamKey {
+  return `exam-${level}`;
+}
+
+/** The level an exam result belongs to, or null if the key isn't a real exam. */
+export function parseExamKey(key: ModeKey): number | null {
+  const m = /^exam-([1-9]\d*)$/.exec(key);
+  const level = m ? Number(m[1]) : NaN;
+  return findLevel(level) ? level : null;
 }
 
 export function isLessonKey(key: ModeKey): key is LessonKey {
@@ -48,12 +65,13 @@ export function isLessonKey(key: ModeKey): key is LessonKey {
 export function isModeKey(value: unknown): value is ModeKey {
   return (
     typeof value === 'string' &&
-    /^(?:(?:time|words)-\d+|lesson-\d+-\d+|weak-keys|(?:pack|note)-[a-z0-9-]+)$/.test(value)
+    /^(?:(?:time|words|exam)-\d+|lesson-\d+-\d+|weak-keys|(?:pack|note)-[a-z0-9-]+)$/.test(value)
   );
 }
 
 export function engineMode(s: Selection): Mode {
   if (s.kind === 'time') return { kind: 'time', seconds: s.seconds };
+  if (s.kind === 'exam') return { kind: 'time', seconds: EXAM_SECONDS };
   const seconds = lessonDrill(s)?.seconds;
   return seconds ? { kind: 'time', seconds } : { kind: 'text' };
 }
@@ -84,6 +102,7 @@ export function modeLabel(key: ModeKey): string {
     const [, lesson, step] = key.split('-');
     return `lesson ${lesson}.${step}`;
   }
+  if (key.startsWith('exam-')) return `exam ${key.slice(5)}`;
   if (key === 'weak-keys') return 'key drill';
   if (key.startsWith('note-')) return 'note';
   return key.slice(5).replace(/-/g, ' ');

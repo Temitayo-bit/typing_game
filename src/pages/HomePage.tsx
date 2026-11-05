@@ -3,6 +3,7 @@ import { packs } from '../data/packs';
 import type { SavedResult } from '../lib/history';
 import type { Selection } from '../lib/modes';
 import { isSpeedTest } from '../lib/modes';
+import { nextUp } from '../lib/exams';
 import { dayStreak, lessonStatus, personalBest, type StepRef } from '../lib/progress';
 import type { Route } from '../lib/route';
 import { Button, Card } from '../components/ui';
@@ -20,6 +21,7 @@ export function HomePage({ results, unlocked, go, practise, name }: Props) {
   const best30 = personalBest(results, 'time-30')?.wpm;
   const speedTests = results.filter((r) => isSpeedTest(r.mode));
   const avgAccuracy = speedTests.length ? Math.round(speedTests.reduce((s, r) => s + r.accuracy, 0) / speedTests.length) : undefined;
+  const next = nextUp(results, unlocked);
   const lessonsDone = lessons.filter((l) => lessonStatus(results, l.id, unlocked).state === 'done').length;
 
   return (
@@ -32,7 +34,11 @@ export function HomePage({ results, unlocked, go, practise, name }: Props) {
             Ten minutes a day is all it takes. Pick up where you left off, or jump into a quick test.
           </p>
           <div className="mt-2 flex flex-wrap gap-3">
-            <Button onClick={() => go({ page: 'lesson', lessonId: unlocked.lessonId })}>Continue lesson {unlocked.lessonId}</Button>
+            {next.kind === 'exam' ? (
+              <Button onClick={() => go({ page: 'exam', level: next.level })}>Take the level {next.level} exam</Button>
+            ) : (
+              <Button onClick={() => go({ page: 'lesson', lessonId: next.lessonId })}>Continue lesson {next.lessonId}</Button>
+            )}
             <Button kind="soft" onClick={() => practise({ kind: 'time', seconds: 30 })}>
               Start a 30s test
             </Button>

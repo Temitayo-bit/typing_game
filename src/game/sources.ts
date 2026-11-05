@@ -4,6 +4,7 @@ import { packs } from '../data/packs';
 import { commonWords } from '../data/words';
 import type { Selection } from '../lib/modes';
 import type { StepRef } from '../lib/progress';
+import { examWords } from './examWords';
 import { lessonDrill, weakKeyDrill } from './lessonWords';
 import { unseen } from '../lib/seen';
 import { pickWords, splitText, type Random } from './words';
@@ -63,6 +64,10 @@ export function wordSource(
       if (!lesson) throw new Error(`Unknown lesson ${selection.lessonId}`);
       const passages = packs.flatMap((p) => p.passages);
       return () => lessonDrill(lesson, selection.step, { words: allWords, passages, weakKeys, seen }, random);
+    }
+    case 'exam': {
+      const passages = packs.flatMap((p) => p.passages);
+      return (count) => examWords(selection.level, count, { words: allWords, passages, weakKeys, seen }, random);
     }
     case 'weak': {
       const learned = practiceWords(practiceLevel(unlocked));

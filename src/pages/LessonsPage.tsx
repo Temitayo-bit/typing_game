@@ -1,16 +1,21 @@
 import { levels, lessons, STEPS_PER_LESSON } from '../data/lessons';
 import type { SavedResult } from '../lib/history';
+import { levelProgress, type LevelProgress } from '../lib/exams';
 import { lessonStatus, type StepRef } from '../lib/progress';
+import { Stars } from '../components/Stars';
 import type { Route } from '../lib/route';
 
 type Props = { results: SavedResult[]; unlocked: StepRef; go: (r: Route) => void };
 
 export function LessonsPage({ results, unlocked, go }: Props) {
+  const journey = levelProgress(results, unlocked);
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="m-0 font-display text-[34px] font-semibold">Learn to type, one row at a time</h1>
-        <p className="m-0 mt-1 text-muted">{lessons.length} lessons in {levels.length} levels. Each lesson has {STEPS_PER_LESSON} practices, and 90% accuracy unlocks the next one.</p>
+        <p className="m-0 mt-1 text-muted">
+          {lessons.length} lessons in {levels.length} levels. Each lesson has {STEPS_PER_LESSON} practices, and 90% accuracy unlocks the next one. Each level ends with an exam.
+        </p>
       </div>
       {levels.map((level) => (
         <section key={level.id} className="flex flex-col gap-3">
@@ -53,10 +58,46 @@ export function LessonsPage({ results, unlocked, go }: Props) {
                   </button>
                 );
               })}
+            <ExamCard p={journey.find((j) => j.level === level.id)!} go={go} />
           </div>
         </section>
       ))}
     </div>
+  );
+}
+
+function ExamCard({ p, go }: { p: LevelProgress; go: (r: Route) => void }) {
+  const open = p.state === 'passed' || p.state === 'exam-ready';
+  return (
+    <button
+      disabled={!open}
+      onClick={() => go({ page: 'exam', level: p.level })}
+      className={`flex items-center gap-3.5 rounded-[18px] border-2 border-dashed p-4 text-left transition ${
+        p.state === 'exam-ready' ? 'border-accent bg-petal' : 'border-line bg-white'
+      } ${open ? 'hover:border-rose' : 'cursor-not-allowed opacity-70'}`}
+    >
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold ${
+          p.state === 'passed' ? 'bg-[#CDEFD9] text-[#1E5C3A]' : p.state === 'exam-ready' ? 'bg-accent text-white' : 'bg-line text-muted'
+        }`}
+      >
+        {open ? '★' : <Lock />}
+      </span>
+      <span className="flex-1">
+        <span className="block font-bold">Level {p.level} exam</span>
+        <span className="block text-sm text-muted">
+          {p.state === 'passed' && p.best ? (
+            <>
+              Passed · {Math.round(p.best.accuracy)}% · {Math.round(p.best.wpm)} wpm <Stars n={p.stars} />
+            </>
+          ) : p.state === 'exam-ready' ? (
+            'Ready when you are'
+          ) : (
+            `Opens after lesson ${p.lastLesson}`
+          )}
+        </span>
+      </span>
+    </button>
   );
 }
 

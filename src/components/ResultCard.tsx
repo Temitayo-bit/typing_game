@@ -6,7 +6,8 @@ import { keyLabel } from '../lib/format';
 import { Button, Card } from './ui';
 import { LineChart } from './LineChart';
 
-export type LessonOutcome = { passed: true; hasNext: boolean } | { passed: false; tooShort?: boolean };
+/** `message` and `nextLabel` let exams speak for themselves instead of using the practice wording. */
+export type LessonOutcome = ({ passed: true; hasNext: boolean } | { passed: false; tooShort?: boolean }) & { message?: string; nextLabel?: string };
 
 type Props = {
   result: Result;
@@ -22,7 +23,9 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
   const [cheer] = useState(() => cheers[Math.floor(Math.random() * cheers.length)]!);
   const newBest = !lesson && previousBest !== undefined && result.wpm > previousBest;
   const missed = Object.entries(result.missedKeys).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const banner = lesson
+  const banner = lesson?.message
+    ? lesson.message
+    : lesson
     ? lesson.passed
       ? lesson.hasNext ? 'Practice passed! The next one is unlocked.' : 'You finished every lesson. You can touch type now!'
       : lesson.tooShort
@@ -94,6 +97,7 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
 
 function nextLabel(lesson: LessonOutcome | undefined): string {
   if (!lesson) return 'Next test';
+  if (lesson.nextLabel) return lesson.nextLabel;
   // A failed practice stays on the same step, so say so instead of promising the next one.
   if (!lesson.passed) return 'Try again';
   return lesson.hasNext ? 'Next practice' : 'Go again';
