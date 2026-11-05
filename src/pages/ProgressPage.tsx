@@ -1,5 +1,4 @@
 import { LineChart } from '../components/LineChart';
-import { ThemePicker } from '../components/ThemePicker';
 import { Button, Card } from '../components/ui';
 import { keyLabel } from '../lib/format';
 import { exportResults, importResults, type SavedResult } from '../lib/history';
@@ -92,10 +91,6 @@ export function ProgressPage({ results, practise, onImported }: Props) {
           </div>
         </Card>
       )}
-      <Card className="flex flex-col gap-3">
-        <span className="font-bold">Themes</span>
-        <ThemePicker />
-      </Card>
       <Backup onImported={onImported} />
     </div>
   );

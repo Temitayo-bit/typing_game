@@ -3,8 +3,25 @@ import { loadSettings, storeSettings, type Settings } from './settings';
 
 // All sounds are synthesised with Web Audio, so there are no audio files to license or download.
 
+let settingsUser: string | null = null;
 let settings: Settings = loadSettings();
 const listeners = new Set<() => void>();
+let onChange: ((s: Settings) => void) | null = null;
+
+/** Loads the signed-in account's settings. `changed` hears her own edits, for syncing. */
+export function switchSettings(userId: string | null, changed: ((s: Settings) => void) | null = null): void {
+  settingsUser = userId;
+  onChange = changed;
+  applySettings(loadSettings(userId));
+}
+
+/** Settings that arrived from the server; stored locally but not echoed back. */
+export function applySettings(next: Settings): void {
+  settings = next;
+  storeSettings(settings, settingsUser);
+  syncMusic();
+  listeners.forEach((l) => l());
+}
 let ctx: AudioContext | null = null;
 let audioBroken = false;
 let musicTimer: number | null = null;
@@ -22,9 +39,9 @@ export function useSettings(): [Settings, (next: Partial<Settings>) => void] {
 
 function updateSettings(next: Partial<Settings>): void {
   settings = { ...settings, ...next };
-  storeSettings(settings);
-  if (settings.music) startMusic();
-  else stopMusic();
+  storeSettings(settings, settingsUser);
+  onChange?.(settings);
+  syncMusic();
   listeners.forEach((l) => l());
 }
 
@@ -72,6 +89,27 @@ export function playFinish(celebrate: boolean): void {
 // A slow music-box loop on a pentatonic scale: calm, and never clashes with itself.
 const scale = [392, 440, 523.25, 587.33, 659.25, 783.99];
 
+// Music belongs to typing: it plays only while a test is on screen and the tab is visible.
+let testsOnScreen = 0;
+
+function syncMusic(): void {
+  const visible = typeof document === 'undefined' || document.visibilityState !== 'hidden';
+  if (settings.music && testsOnScreen > 0 && visible) startMusic();
+  else stopMusic();
+}
+
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', syncMusic);
+
+/** Call from a mounted test view; returns the cleanup for when it leaves the screen. */
+export function musicOnScreen(): () => void {
+  testsOnScreen++;
+  syncMusic();
+  return () => {
+    testsOnScreen--;
+    syncMusic();
+  };
+}
+
 function startMusic(): void {
   if (musicTimer !== null || !audio()) return;
   let step = 0;
@@ -95,7 +133,7 @@ function stopMusic(): void {
 /** Browsers only allow audio after a user gesture, so music resumes on the first key or click. */
 export function resumeMusicOnGesture(): () => void {
   const start = () => {
-    if (settings.music) startMusic();
+    syncMusic();
   };
   window.addEventListener('keydown', start, { once: true });
   window.addEventListener('pointerdown', start, { once: true });

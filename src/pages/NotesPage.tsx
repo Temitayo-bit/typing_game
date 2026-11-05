@@ -7,7 +7,7 @@ import { dayStreak, longestStreak, personalBest, type StepRef } from '../lib/pro
 import { Card, Heart } from '../components/ui';
 import { Practice } from './Practice';
 
-type Props = { results: SavedResult[]; unlocked: StepRef; onFinish: (key: ModeKey, r: Result) => void };
+type Props = { results: SavedResult[]; unlocked: StepRef; onFinish: (key: ModeKey, r: Result, textKeys?: string[]) => void };
 
 export function NotesPage({ results, unlocked, onFinish }: Props) {
   const stats = { streak: dayStreak(results), longestStreak: longestStreak(results), tests: results.length };

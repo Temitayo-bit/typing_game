@@ -7,7 +7,8 @@ export type Route =
   | { page: 'lessons' }
   | { page: 'lesson'; lessonId: number }
   | { page: 'progress' }
-  | { page: 'notes' };
+  | { page: 'notes' }
+  | { page: 'profile' };
 
 export function parseRoute(hash: string): Route {
   const [page, arg] = hash.replace(/^#\/?/, '').split('/');
@@ -16,6 +17,7 @@ export function parseRoute(hash: string): Route {
     case 'lessons':
     case 'progress':
     case 'notes':
+    case 'profile':
       if (page === 'lessons' && arg && /^[1-9]\d*$/.test(arg) && findLesson(Number(arg))) return { page: 'lesson', lessonId: Number(arg) };
       return { page };
     default:

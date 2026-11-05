@@ -5,6 +5,7 @@ import { commonWords } from '../data/words';
 import type { Selection } from '../lib/modes';
 import type { StepRef } from '../lib/progress';
 import { lessonDrill, weakKeyDrill } from './lessonWords';
+import { unseen } from '../lib/seen';
 import { pickWords, splitText, type Random } from './words';
 
 const allWords = [...new Set([...commonWords, ...lessonWordPool])];
@@ -35,6 +36,8 @@ export function wordSource(
   unlocked: StepRef,
   random: Random = Math.random,
   weakKeys: readonly string[] = [],
+  /** Ids of passages already typed. Read on every call, so the caller can add to it as tests finish. */
+  seen: ReadonlySet<string> = new Set(),
 ): (count: number) => string[] {
   switch (selection.kind) {
     case 'time':
@@ -59,7 +62,7 @@ export function wordSource(
       const lesson = findLesson(selection.lessonId);
       if (!lesson) throw new Error(`Unknown lesson ${selection.lessonId}`);
       const passages = packs.flatMap((p) => p.passages);
-      return () => lessonDrill(lesson, selection.step, { words: allWords, passages, weakKeys }, random);
+      return () => lessonDrill(lesson, selection.step, { words: allWords, passages, weakKeys, seen }, random);
     }
     case 'weak': {
       const learned = practiceWords(practiceLevel(unlocked));
@@ -70,9 +73,16 @@ export function wordSource(
       if (!pack) throw new Error(`Unknown pack ${selection.packId}`);
       const passages = pack.passages.filter((p) => splitText(p).length > 0);
       const usable = passages.length > 0 ? passages : [commonWords.slice(0, 25).join(' ')];
-      // Walk through the pack from a random start, so "Next test" always brings a different passage.
+      // Walk through the pack from a random start, so "Next test" always brings a different passage,
+      // skipping ones she has typed before until the pack runs out of new ones.
       let next = Math.floor(random() * usable.length);
-      return () => splitText(usable[next++ % usable.length]!);
+      return () => {
+        const fresh = unseen(usable, seen);
+        let i = next;
+        while (!fresh.includes(usable[i % usable.length]!)) i++;
+        next = i + 1;
+        return splitText(usable[i % usable.length]!);
+      };
     }
     case 'note': {
       const note = notes.find((n) => n.id === selection.noteId);

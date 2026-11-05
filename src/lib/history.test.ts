@@ -20,8 +20,8 @@ describe('importResults', () => {
     expect(await loadResults()).toHaveLength(2);
   });
 
-  it('skips duplicates inside one file but keeps a result that differs in wpm', async () => {
-    expect(await importResults(file([result({}), result({}), result({ wpm: 31 })]))).toBe(2);
+  it('skips duplicates inside one file but keeps a different mode at the same time', async () => {
+    expect(await importResults(file([result({}), result({ wpm: 31 }), result({ mode: 'words-10' })]))).toBe(2);
   });
 
   it('adds nothing when any record is malformed', async () => {
@@ -32,5 +32,38 @@ describe('importResults', () => {
 
   it('rejects text that is not JSON', async () => {
     await expect(importResults('not json')).rejects.toThrow("isn't a progress export");
+  });
+});
+
+describe('switchHistory', () => {
+  it('gives each account its own results', async () => {
+    const { switchHistory, saveResult } = await import('./history');
+    switchHistory('user-a');
+    await saveResult(result({ finishedAt: 5 }));
+    switchHistory('user-b');
+    expect(await loadResults()).toEqual([]);
+    switchHistory('user-a');
+    expect(await loadResults()).toHaveLength(1);
+    switchHistory(null);
+  });
+});
+
+describe('claimLegacyResults', () => {
+  it('gives pre-account results to the first account only', async () => {
+    const store = new Map<string, string>();
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) },
+      configurable: true,
+    });
+    const { switchHistory, saveResult, claimLegacyResults } = await import('./history');
+    switchHistory(null);
+    await saveResult(result({ finishedAt: 77 }));
+    switchHistory('first');
+    await claimLegacyResults('first');
+    expect(await loadResults()).toHaveLength(1);
+    switchHistory('second');
+    await claimLegacyResults('second');
+    expect(await loadResults()).toHaveLength(0);
+    switchHistory(null);
   });
 });

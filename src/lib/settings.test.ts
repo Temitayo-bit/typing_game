@@ -16,3 +16,16 @@ describe('parseSettings', () => {
     expect(parseSettings('{"theme":"neon"}')).toEqual(defaults);
   });
 });
+
+describe('per-account settings', () => {
+  it('keeps each account in its own storage slot', async () => {
+    const store = new Map<string, string>();
+    const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+    Object.defineProperty(globalThis, 'localStorage', { value: fake, configurable: true });
+    const { loadSettings, storeSettings } = await import('./settings');
+    storeSettings({ sounds: false, music: true, theme: 'mint' }, 'a');
+    expect(loadSettings('a').theme).toBe('mint');
+    expect(loadSettings('b').theme).toBe('rose');
+    expect(loadSettings(null).theme).toBe('rose');
+  });
+});

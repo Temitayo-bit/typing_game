@@ -13,7 +13,7 @@ type Props = {
   setSelection: (s: Selection) => void;
   results: SavedResult[];
   unlocked: StepRef;
-  onFinish: (key: ReturnType<typeof selectionKey>, r: Result) => void;
+  onFinish: (key: ReturnType<typeof selectionKey>, r: Result, textKeys?: string[]) => void;
 };
 
 const times = [15, 30, 60];
