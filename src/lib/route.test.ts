@@ -9,7 +9,7 @@ describe('routes', () => {
     expect(parseRoute('#/lessons/x')).toEqual({ page: 'lessons' });
     expect(parseRoute('#/nope')).toEqual({ page: 'home' });
     expect(parseRoute('#practice')).toEqual({ page: 'practice' });
-    for (const bad of ['#/lessons/0', '#/lessons/21', '#/lessons/007', '#/lessons/']) expect(parseRoute(bad)).toEqual({ page: 'lessons' });
+    for (const bad of ['#/lessons/0', '#/lessons/41', '#/lessons/007', '#/lessons/']) expect(parseRoute(bad)).toEqual({ page: 'lessons' });
   });
 
   it('round-trips', () => {

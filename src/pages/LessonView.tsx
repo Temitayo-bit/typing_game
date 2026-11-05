@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
+import { drillFor, type Drill } from '../data/drills';
 import { findLesson, keysUpTo, lessons, PASS_ACCURACY, STEPS_PER_LESSON } from '../data/lessons';
 import type { Result } from '../game/stats';
 import type { SavedResult } from '../lib/history';
 import { lessonKey, type ModeKey } from '../lib/modes';
-import { isUnlocked, nextStep, passedStep, passedStepsOf, type StepRef } from '../lib/progress';
+import { isUnlocked, MIN_PASS_CHARS, nextStep, passedStep, passedStepsOf, type StepRef } from '../lib/progress';
 import type { Route } from '../lib/route';
 import { Card } from '../components/ui';
 import { Practice } from './Practice';
@@ -53,7 +54,8 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
     );
   }
 
-  const isLast = lesson.id === lessons.length && step === STEPS_PER_LESSON;
+  const isLast = lesson.id === lessons.at(-1)?.id && step === STEPS_PER_LESSON;
+  const drill = drillFor(lesson, step);
   return (
     <div className="flex flex-col gap-5">
       <button className="self-start font-bold text-berry hover:text-wine" onClick={() => go({ page: 'lessons' })}>
@@ -65,18 +67,34 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
         </div>
         <h1 className="m-0 font-display text-[30px] font-semibold">{lesson.title}</h1>
         <p className="m-0 leading-normal text-muted">{lesson.tip}</p>
+        <div className="flex flex-col gap-2 rounded-[22px] bg-blush px-5 py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="m-0 font-display text-xl font-semibold">{drill.title}</h2>
+            {twists(drill).length > 0 && (
+              <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="Rules for this practice">
+                {twists(drill).map((t) => (
+                  <li key={t} className="rounded-md border border-wine/30 px-2 py-0.5 text-xs font-semibold text-wine">
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <p className="m-0 leading-normal">{drill.blurb}</p>
+        </div>
         <Practice
           key={lessonKey(lesson.id, step)}
           selection={{ kind: 'lesson', lessonId: lesson.id, step }}
           results={results}
           unlocked={unlocked}
           onFinish={finish}
-          guide={{ unlocked: keysUpTo(lesson.id), fresh: lesson.newKeys }}
-          lessonOutcome={(r) => (passedStep(r) ? { passed: true, hasNext: !isLast } : { passed: false })}
+          guide={drill.hideKeyboard ? undefined : { unlocked: keysUpTo(lesson.id), fresh: lesson.newKeys }}
+          lessonOutcome={(r) => (passedStep(r) ? { passed: true, hasNext: !isLast } : { passed: false, tooShort: r.correctChars < MIN_PASS_CHARS })}
           onNextLesson={goNext}
         />
         <p className="m-0 text-[15px] text-muted">
-          Goal to unlock the next practice: <strong className="text-ink">{PASS_ACCURACY}% accuracy</strong>. Speed does not matter yet.
+          Goal to unlock the next practice: <strong className="text-ink">{PASS_ACCURACY}% accuracy</strong>.{' '}
+          {drill.seconds ? 'Keep going until the clock runs out. The speed is just for fun.' : 'Speed does not matter yet.'}
         </p>
       </Card>
       <Card className="sm:p-6">
@@ -101,7 +119,8 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
                     s === step ? 'bg-accent text-white' : done ? 'bg-[#CDEFD9] text-[#1E5C3A]' : open ? 'bg-petal text-wine' : 'bg-cream text-faint'
                   }`}
                 >
-                  {done ? '✓ ' : ''}Practice {s}
+                  {done ? '✓ ' : ''}
+                  {s}. {drillFor(lesson, s).title}
                 </button>
               );
             })}
@@ -110,4 +129,13 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
       </Card>
     </div>
   );
+}
+
+function twists(drill: Drill): string[] {
+  const out: string[] = [];
+  if (drill.seconds) out.push(`${drill.seconds} seconds`);
+  if (drill.noBackspace) out.push('no backspace');
+  if (drill.stopOnError) out.push('find the right key');
+  if (drill.hideKeyboard) out.push('no keyboard');
+  return out;
 }

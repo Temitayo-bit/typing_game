@@ -6,7 +6,7 @@ import { keyLabel } from '../lib/format';
 import { Button, Card } from './ui';
 import { LineChart } from './LineChart';
 
-export type LessonOutcome = { passed: true; hasNext: boolean } | { passed: false };
+export type LessonOutcome = { passed: true; hasNext: boolean } | { passed: false; tooShort?: boolean };
 
 type Props = {
   result: Result;
@@ -25,7 +25,9 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
   const banner = lesson
     ? lesson.passed
       ? lesson.hasNext ? 'Practice passed! The next one is unlocked.' : 'You finished every lesson. You can touch type now!'
-      : `So close. ${PASS_ACCURACY}% accuracy unlocks the next one, speed doesn't matter yet.`
+      : lesson.tooShort
+        ? 'Keep typing until the clock runs out, a few more words and it counts.'
+        : `So close. ${PASS_ACCURACY}% accuracy unlocks the next one, speed doesn't matter yet.`
     : newBest
       ? `New personal best for ${modeLabel}! Look at you go.`
       : null;
@@ -80,7 +82,7 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
         </div>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Button onClick={onNext}>{lesson?.passed && lesson.hasNext ? 'Next practice' : 'Next test'}</Button>
+        <Button onClick={onNext}>{nextLabel(lesson)}</Button>
         <Button kind="soft" onClick={onRetry}>
           Retry same text
         </Button>
@@ -88,6 +90,13 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
       </div>
     </section>
   );
+}
+
+function nextLabel(lesson: LessonOutcome | undefined): string {
+  if (!lesson) return 'Next test';
+  // A failed practice stays on the same step, so say so instead of promising the next one.
+  if (!lesson.passed) return 'Try again';
+  return lesson.hasNext ? 'Next practice' : 'Go again';
 }
 
 function Big({ label, value, size, accent }: { label: string; value: string | number; size: string; accent?: boolean }) {

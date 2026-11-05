@@ -74,8 +74,11 @@ function dayKey(d: Date): string {
 
 export type StepRef = { lessonId: number; step: number };
 
-export function passedStep(result: Pick<SavedResult, 'accuracy'>): boolean {
-  return result.accuracy >= PASS_ACCURACY;
+/** A timed sprint could otherwise be passed by typing one letter and waiting. */
+export const MIN_PASS_CHARS = 20;
+
+export function passedStep(result: Pick<SavedResult, 'accuracy' | 'correctChars'>): boolean {
+  return result.accuracy >= PASS_ACCURACY && result.correctChars >= MIN_PASS_CHARS;
 }
 
 const stepIndex = ({ lessonId, step }: StepRef) => (lessonId - 1) * STEPS_PER_LESSON + (step - 1);

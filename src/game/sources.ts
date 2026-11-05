@@ -30,7 +30,12 @@ export function practiceWords(level: PracticeLevel): string[] {
   return allWords.filter((w) => [...w].every((c) => letters.has(c)));
 }
 
-export function wordSource(selection: Selection, unlocked: StepRef, random: Random = Math.random): (count: number) => string[] {
+export function wordSource(
+  selection: Selection,
+  unlocked: StepRef,
+  random: Random = Math.random,
+  weakKeys: readonly string[] = [],
+): (count: number) => string[] {
   switch (selection.kind) {
     case 'time':
     case 'words': {
@@ -43,7 +48,7 @@ export function wordSource(selection: Selection, unlocked: StepRef, random: Rand
         const want = fixed ?? count;
         const out: string[] = [];
         while (out.length < want) {
-          const drill = lessonDrill(lesson, 2, { words, passages: [] }, random);
+          const drill = lessonDrill(lesson, 3, { words, passages: [] }, random);
           if (drill.length === 0) throw new Error(`Lesson ${lesson.id} has no drill text`);
           out.push(...drill);
         }
@@ -54,7 +59,7 @@ export function wordSource(selection: Selection, unlocked: StepRef, random: Rand
       const lesson = findLesson(selection.lessonId);
       if (!lesson) throw new Error(`Unknown lesson ${selection.lessonId}`);
       const passages = packs.flatMap((p) => p.passages);
-      return () => lessonDrill(lesson, selection.step, { words: allWords, passages }, random);
+      return () => lessonDrill(lesson, selection.step, { words: allWords, passages, weakKeys }, random);
     }
     case 'weak': {
       const learned = practiceWords(practiceLevel(unlocked));
@@ -65,7 +70,9 @@ export function wordSource(selection: Selection, unlocked: StepRef, random: Rand
       if (!pack) throw new Error(`Unknown pack ${selection.packId}`);
       const passages = pack.passages.filter((p) => splitText(p).length > 0);
       const usable = passages.length > 0 ? passages : [commonWords.slice(0, 25).join(' ')];
-      return () => splitText(usable[Math.floor(random() * usable.length)]!);
+      // Walk through the pack from a random start, so "Next test" always brings a different passage.
+      let next = Math.floor(random() * usable.length);
+      return () => splitText(usable[next++ % usable.length]!);
     }
     case 'note': {
       const note = notes.find((n) => n.id === selection.noteId);
