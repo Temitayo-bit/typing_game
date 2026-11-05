@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { engineMode, isLessonKey, isModeKey, isSpeedTest, modeLabel, selectionKey } from './modes';
+import { lessonPlan } from '../data/drills';
+import { engineMode, isLessonKey, isModeKey, isSpeedTest, modeLabel, selectionKey, testRules } from './modes';
 
 describe('selectionKey', () => {
   it('gives a stable key for each kind', () => {
@@ -42,5 +43,21 @@ describe('engineMode', () => {
     expect(engineMode({ kind: 'time', seconds: 60 })).toEqual({ kind: 'time', seconds: 60 });
     expect(engineMode({ kind: 'lesson', lessonId: 1, step: 1 })).toEqual({ kind: 'text' });
     expect(engineMode({ kind: 'pack', packId: 'food' })).toEqual({ kind: 'text' });
+  });
+});
+
+describe('lesson practice twists', () => {
+  const step = (find: (d: ReturnType<typeof lessonPlan>[number]) => boolean) => lessonPlan('keys').findIndex(find) + 1;
+
+  it('runs a sprint practice against the clock', () => {
+    const sprint = step((d) => d.seconds !== undefined);
+    expect(engineMode({ kind: 'lesson', lessonId: 3, step: sprint })).toEqual({ kind: 'time', seconds: 30 });
+    expect(engineMode({ kind: 'lesson', lessonId: 3, step: 1 })).toEqual({ kind: 'text' });
+  });
+
+  it('switches off backspace in the checkpoint and holds the cursor in the strict practice', () => {
+    expect(testRules({ kind: 'lesson', lessonId: 3, step: 8 }).noBackspace).toBe(true);
+    expect(testRules({ kind: 'lesson', lessonId: 3, step: step((d) => d.stopOnError === true) }).stopOnError).toBe(true);
+    expect(testRules({ kind: 'time', seconds: 30 })).toEqual({ noBackspace: undefined, stopOnError: undefined });
   });
 });

@@ -1,4 +1,6 @@
-import type { Mode } from '../game/engine';
+import { drillFor, type Drill } from '../data/drills';
+import { findLesson } from '../data/lessons';
+import type { Mode, Rules } from '../game/engine';
 
 export type Selection =
   | { kind: 'time'; seconds: number }
@@ -51,7 +53,21 @@ export function isModeKey(value: unknown): value is ModeKey {
 }
 
 export function engineMode(s: Selection): Mode {
-  return s.kind === 'time' ? { kind: 'time', seconds: s.seconds } : { kind: 'text' };
+  if (s.kind === 'time') return { kind: 'time', seconds: s.seconds };
+  const seconds = lessonDrill(s)?.seconds;
+  return seconds ? { kind: 'time', seconds } : { kind: 'text' };
+}
+
+/** The lesson practice behind a selection, if it is one. */
+export function lessonDrill(s: Selection): Drill | undefined {
+  if (s.kind !== 'lesson') return undefined;
+  const lesson = findLesson(s.lessonId);
+  return lesson ? drillFor(lesson, s.step) : undefined;
+}
+
+export function testRules(s: Selection): Rules {
+  const drill = lessonDrill(s);
+  return { noBackspace: drill?.noBackspace, stopOnError: drill?.stopOnError };
 }
 
 /** Practice results that count towards speed records (lessons and drills are excluded). */

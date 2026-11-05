@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Mode, TestState } from '../game/engine';
+import type { Mode, Rules, TestState } from '../game/engine';
 import type { Result } from '../game/stats';
 import { correctChars, wordsPerMinute } from '../game/stats';
 import { useTypingTest } from '../game/useTypingTest';
+import { keyLabel } from '../lib/format';
 import { playFinish, playKey } from '../lib/sound';
 import { KeyboardGuide } from './KeyboardGuide';
 import { ResultCard, type LessonOutcome } from './ResultCard';
@@ -12,6 +13,7 @@ import { WordsView } from './WordsView';
 
 type Props = {
   mode: Mode;
+  rules?: Rules;
   modeLabel: string;
   makeWords: (count: number) => string[];
   previousBest: number | undefined;
@@ -24,8 +26,8 @@ type Props = {
 };
 
 export function TestView(props: Props) {
-  const { mode, makeWords, previousBest, onFinish, guide, lessonOutcome } = props;
-  const { test, result, elapsedMs, paused, capsLock, restart, retry } = useTypingTest(mode, makeWords);
+  const { mode, rules, makeWords, previousBest, onFinish, guide, lessonOutcome } = props;
+  const { test, result, elapsedMs, paused, capsLock, restart, retry } = useTypingTest(mode, makeWords, rules);
   const reported = useRef<Result | null>(null);
   // Saving the result updates previousBest, so remember the best from before this run.
   const [bestBefore, setBestBefore] = useState(previousBest);
@@ -93,6 +95,9 @@ export function TestView(props: Props) {
           (test.typed[test.wordIndex] ?? '').length >= (test.targets[test.wordIndex] ?? '').length && (
             <p className="mt-2 text-muted">press space to finish</p>
           )}
+        {rules?.stopOnError && last && !last.correct && last.expected !== null && test.status === 'running' && (
+          <p className="mt-2 font-bold text-berry">not quite, find {keyLabel(last.expected)}</p>
+        )}
         {capsLock && <p className="mt-2 font-bold text-error">caps lock is on</p>}
       </div>
       {guide && <KeyboardGuide nextChar={nextChar(test)} unlocked={guide.unlocked} fresh={guide.fresh} />}

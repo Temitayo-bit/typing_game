@@ -30,7 +30,12 @@ export function practiceWords(level: PracticeLevel): string[] {
   return allWords.filter((w) => [...w].every((c) => letters.has(c)));
 }
 
-export function wordSource(selection: Selection, unlocked: StepRef, random: Random = Math.random): (count: number) => string[] {
+export function wordSource(
+  selection: Selection,
+  unlocked: StepRef,
+  random: Random = Math.random,
+  weakKeys: readonly string[] = [],
+): (count: number) => string[] {
   switch (selection.kind) {
     case 'time':
     case 'words': {
@@ -43,7 +48,7 @@ export function wordSource(selection: Selection, unlocked: StepRef, random: Rand
         const want = fixed ?? count;
         const out: string[] = [];
         while (out.length < want) {
-          const drill = lessonDrill(lesson, 2, { words, passages: [] }, random);
+          const drill = lessonDrill(lesson, 3, { words, passages: [] }, random);
           if (drill.length === 0) throw new Error(`Lesson ${lesson.id} has no drill text`);
           out.push(...drill);
         }
@@ -54,7 +59,7 @@ export function wordSource(selection: Selection, unlocked: StepRef, random: Rand
       const lesson = findLesson(selection.lessonId);
       if (!lesson) throw new Error(`Unknown lesson ${selection.lessonId}`);
       const passages = packs.flatMap((p) => p.passages);
-      return () => lessonDrill(lesson, selection.step, { words: allWords, passages }, random);
+      return () => lessonDrill(lesson, selection.step, { words: allWords, passages, weakKeys }, random);
     }
     case 'weak': {
       const learned = practiceWords(practiceLevel(unlocked));

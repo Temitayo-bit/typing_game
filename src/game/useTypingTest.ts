@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { createTest, extendTargets, reduce, type Action, type Mode, type TestState } from './engine';
+import { createTest, extendTargets, reduce, type Action, type Mode, type Rules, type TestState } from './engine';
 import { computeResult, type Result } from './stats';
 
 type Clock = { startedAt: number | null; pausedAt: number | null; pausedTotal: number };
@@ -37,15 +37,16 @@ export type TypingTest = {
 };
 
 const INITIAL_WORDS = 60;
+const NO_RULES: Rules = {};
 const EXTEND_WHEN_LEFT = 20;
 
 /**
  * Drives one typing test from keyboard events. `makeWords` is called for the
  * initial text (fixed-length sources ignore the count) and, in time mode, whenever the text is about to run out.
  */
-export function useTypingTest(mode: Mode, makeWords: (count: number) => string[]): TypingTest {
+export function useTypingTest(mode: Mode, makeWords: (count: number) => string[], rules: Rules = NO_RULES): TypingTest {
   const [state, dispatch] = useReducer(internalReducer, undefined, () => ({
-    test: createTest(mode, makeWords(INITIAL_WORDS)),
+    test: createTest(mode, makeWords(INITIAL_WORDS), rules),
     result: null,
   }));
   const clock = useRef<Clock>({ startedAt: null, pausedAt: null, pausedTotal: 0 });
@@ -65,9 +66,9 @@ export function useTypingTest(mode: Mode, makeWords: (count: number) => string[]
       clock.current = { startedAt: null, pausedAt: null, pausedTotal: 0 };
       setElapsedMs(0);
       setPaused(false);
-      dispatch({ type: 'reset', test: createTest(mode, words) });
+      dispatch({ type: 'reset', test: createTest(mode, words, rules) });
     },
-    [mode],
+    [mode, rules],
   );
   const restart = useCallback(() => startWith(makeWords(INITIAL_WORDS)), [startWith, makeWords]);
   const targets0 = state.test.targets;

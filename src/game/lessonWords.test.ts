@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { keysUpTo, lessonWordPool, lessons, punctuationPool, STEPS_PER_LESSON } from '../data/lessons';
+import { drillFor, lessonPlan } from '../data/drills';
+import { keysUpTo, lessonWordPool, lessons, punctuationPool, STEPS_PER_LESSON, type LessonKind } from '../data/lessons';
 import { commonWords } from '../data/words';
+import { packs } from '../data/packs';
 import { lessonDrill, weakKeyDrill } from './lessonWords';
 
 function seeded(seed: number) {
@@ -12,27 +14,51 @@ function seeded(seed: number) {
 
 const sources = { words: [...lessonWordPool, ...commonWords], passages: ['one two three'] };
 
+const shiftFrom = lessons.find((l) => l.kind === 'shift')!.id;
+
+function typeableAt(lessonId: number): Set<string> {
+  const keys = keysUpTo(lessonId);
+  const chars = new Set([' ', ...keys]);
+  if (lessonId >= shiftFrom) for (const k of keys) if (/[a-z]/.test(k)) chars.add(k.toUpperCase());
+  return chars;
+}
+
 describe('lessonDrill', () => {
-  it('only uses unlocked keys in every step of every letter lesson', () => {
-    for (const lesson of lessons.filter((l) => l.kind === 'keys')) {
-      const allowed = keysUpTo(lesson.id);
+  it('only uses keys she has learned, in every practice of every lesson', () => {
+    for (const lesson of lessons) {
+      const chars = typeableAt(lesson.id);
       for (let step = 1; step <= STEPS_PER_LESSON; step++) {
-        const drill = lessonDrill(lesson, step, sources, seeded(lesson.id * 10 + step));
-        expect(drill.length).toBeGreaterThanOrEqual(20);
-        for (const word of drill) {
-          expect(word.length).toBeGreaterThan(0);
-          for (const c of word) expect(allowed.has(c), `${c} in lesson ${lesson.id} step ${step}`).toBe(true);
+        for (const seed of [1, 2, 3]) {
+          const drill = lessonDrill(lesson, step, { ...sources, passages: packs.flatMap((p) => p.passages), weakKeys: ['q', 'z', '7'] }, seeded(lesson.id * 100 + step * 10 + seed));
+          expect(drill.length, `lesson ${lesson.id} step ${step}`).toBeGreaterThanOrEqual(15);
+          for (const word of drill) {
+            expect(word.length).toBeGreaterThan(0);
+            for (const c of word) expect(chars.has(c), `${c} in "${word}", lesson ${lesson.id} step ${step}`).toBe(true);
+          }
         }
       }
     }
   });
 
-  it('starts with only f and j', () => {
+  it('starts with only f and j, one key at a time', () => {
     const drill = lessonDrill(lessons[0]!, 1, sources, seeded(3));
-    expect(drill.join('')).toMatch(/^[fj]+$/);
+    expect(drill.every((w) => /^(f+|j+)$/.test(w))).toBe(true);
   });
 
-  it('moves from letter groups to real words over the steps', () => {
+  it('rolls new keys against old ones in the second practice', () => {
+    const lesson = lessons.find((l) => l.id === 2)!;
+    const drill = lessonDrill(lesson, 2, sources, seeded(4));
+    expect(drill.every((w) => /[dk]/.test(w) && /[fj]/.test(w))).toBe(true);
+  });
+
+  it('says each word three times in the echo practice', () => {
+    const lesson = lessons.find((l) => l.id === 9)!;
+    const step = lessonPlan('keys').findIndex((d) => d.type === 'echo') + 1;
+    const drill = lessonDrill(lesson, step, sources, seeded(5));
+    for (let i = 0; i < drill.length; i += 3) expect(new Set(drill.slice(i, i + 3)).size).toBe(1);
+  });
+
+  it('moves from letter groups to real words over the lesson', () => {
     const lesson = lessons.find((l) => l.id === 9)!;
     const isWord = (w: string) => sources.words.includes(w);
     const step1 = lessonDrill(lesson, 1, sources, seeded(1)).filter(isWord).length;
@@ -40,33 +66,91 @@ describe('lessonDrill', () => {
     expect(step8).toBeGreaterThan(step1);
   });
 
-  it('adds capitals in the shift lesson', () => {
-    const drill = lessonDrill(lessons.find((l) => l.kind === 'shift')!, 8, sources, seeded(2));
-    expect(drill.some((w) => /^[A-Z]/.test(w))).toBe(true);
+  it('uses the left Shift for right-hand capitals and the other way round', () => {
+    const lesson = lessons.find((l) => l.kind === 'shift')!;
+    expect(lessonDrill(lesson, 1, sources, seeded(2)).every((w) => /^[YUIOPHJKLNM]/.test(w))).toBe(true);
+    expect(lessonDrill(lesson, 2, sources, seeded(2)).every((w) => /^[QWERTASDFGZXCVB]/.test(w))).toBe(true);
   });
 
-  it('adds quotes and questions in the punctuation lesson', () => {
-    const drill = lessonDrill(lessons.find((l) => l.kind === 'punctuation')!, 8, sources, seeded(2));
-    expect(drill.some((w) => punctuationPool.includes(w))).toBe(true);
+  it('keeps quotes and questions out of the first Shift lessons and adds them in punctuation', () => {
+    const shift = lessons.find((l) => l.kind === 'shift')!;
+    const plain = lessonPlan('shift').flatMap((_, i) => lessonDrill(shift, i + 1, sources, seeded(i))).join(' ');
+    expect(plain).not.toMatch(/['?]/);
+    const punctuation = lessons.find((l) => l.kind === 'punctuation')!;
+    expect(lessonDrill(punctuation, 1, sources, seeded(2)).some((w) => w.includes("'"))).toBe(true);
+    expect(lessonDrill(punctuation, 2, sources, seeded(2)).some((w) => w.endsWith('?'))).toBe(true);
+    expect(lessonDrill(punctuation, 8, sources, seeded(2)).some((w) => punctuationPool.includes(w) || /['?]/.test(w))).toBe(true);
   });
 
-  it('uses a passage in the sentences lessons', () => {
-    expect(lessonDrill(lessons.at(-2)!, 1, sources)).toEqual(['one', 'two', 'three']);
-    expect(lessonDrill(lessons.at(-1)!, 8, sources)).toHaveLength(6);
-  });
-
-  it('adds digits in the number lessons', () => {
-    const drill = lessonDrill(lessons.find((l) => l.id === 17)!, 1, sources, seeded(5));
-    expect(drill.some((w) => /^[1-5]+$/.test(w))).toBe(true);
-    expect(drill.join('')).not.toMatch(/[6-90]/);
-  });
-
-  it('gives every step of every lesson some text', () => {
-    for (const lesson of lessons) {
-      for (let step = 1; step <= STEPS_PER_LESSON; step++) {
-        expect(lessonDrill(lesson, step, sources, seeded(step)).length).toBeGreaterThan(0);
-      }
+  it('builds numbers only from the digits taught so far', () => {
+    const lesson = lessons.find((l) => l.id === 17)!;
+    for (let step = 1; step <= STEPS_PER_LESSON; step++) {
+      const drill = lessonDrill(lesson, step, sources, seeded(step));
+      expect(drill.join(' ')).not.toMatch(/[6-90]/);
     }
+    expect(lessonDrill(lesson, 1, sources, seeded(5)).every((w) => /^[1-5]+$/.test(w))).toBe(true);
+    const counting = lessonDrill(lesson, 2, sources, seeded(5));
+    expect(counting.filter((_, i) => i % 2 === 0).every((w) => /^[1-5]+$/.test(w))).toBe(true);
+  });
+
+  it('uses a passage for story practices and two for the long one', () => {
+    const lesson = lessons.find((l) => l.kind === 'sentences')!;
+    const story = lessonPlan('sentences').findIndex((d) => d.type === 'story') + 1;
+    expect(lessonDrill(lesson, story, { ...sources, passages: ['one two three'] })).toEqual(['one', 'two', 'three']);
+    expect(lessonDrill(lesson, 8, { ...sources, passages: ['one two', 'three four five'] }, seeded(1))).toHaveLength(5);
+  });
+
+  it('drills the keys she misses most in the tricky keys practice', () => {
+    const lesson = lessons.find((l) => l.kind === 'sentences')!;
+    const step = lessonPlan('sentences').findIndex((d) => d.type === 'weak-keys') + 1;
+    const drill = lessonDrill(lesson, step, { ...sources, weakKeys: ['z'] }, seeded(6));
+    expect(drill.every((w) => w.includes('z'))).toBe(true);
+  });
+
+  it("prefers a lesson's own words and passages", () => {
+    const base = lessons.find((l) => l.id === 12)!;
+    const own = { ...base, words: ['bean', 'been', 'blue', 'bank', 'bun', 'nab', 'ban', 'nib'], passages: ['a blue bean'] };
+    const words = lessonDrill(own, 4, sources, seeded(7));
+    expect(words.every((w) => own.words.includes(w))).toBe(true);
+  });
+
+  it('drills letter patterns as chunks', () => {
+    const base = lessons.find((l) => l.id === 12)!;
+    const patterns = { ...base, kind: 'patterns', focus: ['th', 'ing'] } as unknown as typeof base;
+    const drill = lessonDrill(patterns, 1, sources, seeded(8));
+    expect(drill.every((w) => w.includes('th') || w.includes('ing'))).toBe(true);
+  });
+});
+
+describe('lesson plans', () => {
+  const kinds = [...new Set(lessons.map((l) => l.kind)), 'patterns', 'symbols', 'speed', 'reading'] as LessonKind[];
+
+  it('gives every lesson kind eight different practices', () => {
+    for (const kind of kinds) {
+      const plan = lessonPlan(kind);
+      expect(plan, kind).toHaveLength(STEPS_PER_LESSON);
+      expect(new Set(plan.map((d) => d.title)).size, kind).toBe(STEPS_PER_LESSON);
+      const shapes = plan.map((d) => `${d.type}|${d.seconds}|${d.noBackspace}|${d.stopOnError}|${d.hideKeyboard}`);
+      expect(new Set(shapes).size, kind).toBe(STEPS_PER_LESSON);
+    }
+  });
+
+  it('includes a sprint, an eyes-up run and a strict checkpoint in every lesson', () => {
+    for (const kind of kinds) {
+      const plan = lessonPlan(kind);
+      expect(plan.some((d) => d.seconds), kind).toBe(true);
+      expect(plan.some((d) => d.hideKeyboard), kind).toBe(true);
+      expect(plan.at(-1)?.noBackspace, kind).toBe(true);
+    }
+  });
+
+  it('falls back to the letters plan for a kind it does not know', () => {
+    expect(lessonPlan('mystery' as LessonKind)).toBe(lessonPlan('keys'));
+  });
+
+  it('rejects a step outside the lesson', () => {
+    expect(() => drillFor(lessons[0]!, 0)).toThrow();
+    expect(() => drillFor(lessons[0]!, STEPS_PER_LESSON + 1)).toThrow();
   });
 });
 

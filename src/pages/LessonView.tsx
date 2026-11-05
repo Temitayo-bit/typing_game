@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { drillFor, type Drill } from '../data/drills';
 import { findLesson, keysUpTo, lessons, PASS_ACCURACY, STEPS_PER_LESSON } from '../data/lessons';
 import type { Result } from '../game/stats';
 import type { SavedResult } from '../lib/history';
@@ -53,7 +54,8 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
     );
   }
 
-  const isLast = lesson.id === lessons.length && step === STEPS_PER_LESSON;
+  const isLast = lesson.id === lessons.at(-1)?.id && step === STEPS_PER_LESSON;
+  const drill = drillFor(lesson, step);
   return (
     <div className="flex flex-col gap-5">
       <button className="self-start font-bold text-berry hover:text-wine" onClick={() => go({ page: 'lessons' })}>
@@ -65,13 +67,24 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
         </div>
         <h1 className="m-0 font-display text-[30px] font-semibold">{lesson.title}</h1>
         <p className="m-0 leading-normal text-muted">{lesson.tip}</p>
+        <div className="flex flex-col gap-2 rounded-[22px] bg-blush px-5 py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="m-0 font-display text-xl font-semibold">{drill.title}</h2>
+            {twists(drill).map((t) => (
+              <span key={t} className="rounded-full bg-petal px-3 py-1 text-sm font-bold text-wine">
+                {t}
+              </span>
+            ))}
+          </div>
+          <p className="m-0 leading-normal">{drill.blurb}</p>
+        </div>
         <Practice
           key={lessonKey(lesson.id, step)}
           selection={{ kind: 'lesson', lessonId: lesson.id, step }}
           results={results}
           unlocked={unlocked}
           onFinish={finish}
-          guide={{ unlocked: keysUpTo(lesson.id), fresh: lesson.newKeys }}
+          guide={drill.hideKeyboard ? undefined : { unlocked: keysUpTo(lesson.id), fresh: lesson.newKeys }}
           lessonOutcome={(r) => (passedStep(r) ? { passed: true, hasNext: !isLast } : { passed: false })}
           onNextLesson={goNext}
         />
@@ -101,7 +114,8 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
                     s === step ? 'bg-accent text-white' : done ? 'bg-[#CDEFD9] text-[#1E5C3A]' : open ? 'bg-petal text-wine' : 'bg-cream text-faint'
                   }`}
                 >
-                  {done ? '✓ ' : ''}Practice {s}
+                  {done ? '✓ ' : ''}
+                  {s}. {drillFor(lesson, s).title}
                 </button>
               );
             })}
@@ -110,4 +124,13 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
       </Card>
     </div>
   );
+}
+
+function twists(drill: Drill): string[] {
+  const out: string[] = [];
+  if (drill.seconds) out.push(`${drill.seconds} seconds`);
+  if (drill.noBackspace) out.push('no backspace');
+  if (drill.stopOnError) out.push('right key only');
+  if (drill.hideKeyboard) out.push('no keyboard');
+  return out;
 }
