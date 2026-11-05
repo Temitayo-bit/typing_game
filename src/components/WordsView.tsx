@@ -20,6 +20,7 @@ export function WordsView({ test, faded }: { test: TestState; faded: boolean }) 
     <div
       className={`relative overflow-hidden font-mono text-[26px] tracking-[0.01em] transition-opacity ${faded ? 'opacity-40 blur-[1px]' : ''}`}
       style={{ height: `${LINE_HEIGHT_REM * 3}rem`, lineHeight: `${LINE_HEIGHT_REM}rem` }}
+      role="region"
       aria-label="Text to type"
     >
       <div className="flex flex-wrap gap-x-[0.6em]" style={{ transform: `translateY(-${offset}px)` }}>

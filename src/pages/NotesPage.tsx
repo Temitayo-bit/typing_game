@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { notes, noteUnlocked, unlockHint } from '../data/notes';
 import type { Result } from '../game/stats';
 import type { SavedResult } from '../lib/history';
@@ -12,6 +12,10 @@ type Props = { results: SavedResult[]; unlocked: StepRef; onFinish: (key: ModeKe
 export function NotesPage({ results, unlocked, onFinish }: Props) {
   const stats = { streak: dayStreak(results), longestStreak: longestStreak(results), tests: results.length };
   const [typing, setTyping] = useState<string | null>(null);
+  const practiceRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (typing) practiceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [typing]);
   const note = notes.find((n) => n.id === typing);
   return (
     <div className="flex flex-col gap-6">
@@ -27,7 +31,10 @@ export function NotesPage({ results, unlocked, onFinish }: Props) {
             <button
               key={n.id}
               disabled={!open}
-              onClick={() => setTyping(n.id)}
+              onClick={(e) => {
+                setTyping(n.id);
+                e.currentTarget.blur();
+              }}
               className={`flex min-h-45 flex-col gap-3 rounded-3xl border border-line p-5 text-left ${
                 !open ? 'cursor-not-allowed bg-[#FBE6EE]' : best ? 'bg-white' : 'bg-blush'
               } ${typing === n.id ? 'ring-2 ring-accent' : ''}`}
@@ -45,10 +52,12 @@ export function NotesPage({ results, unlocked, onFinish }: Props) {
         })}
       </div>
       {note && (
+        <div ref={practiceRef}>
         <Card className="flex flex-col gap-4">
           <span className="font-bold">Typing: "{note.tag}"</span>
           <Practice selection={{ kind: 'note', noteId: note.id }} results={results} unlocked={unlocked} onFinish={onFinish} />
         </Card>
+        </div>
       )}
     </div>
   );

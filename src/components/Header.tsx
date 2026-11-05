@@ -34,7 +34,7 @@ export function Header({ route, go }: { route: Route; go: (r: Route) => void }) 
           );
         })}
       </nav>
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose font-display text-lg text-white" aria-label="Ogenna">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent font-display text-lg text-white" role="img" aria-label="Ogenna">
         O
       </div>
     </header>

@@ -109,11 +109,14 @@ export function useTypingTest(mode: Mode, makeWords: (count: number) => string[]
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       setCapsLock(e.getModifierState?.('CapsLock') ?? false);
-      if (e.key === 'Tab' || e.key === 'Escape') {
+      // Esc restarts from anywhere; Tab is left alone so the page stays keyboard navigable.
+      if (e.key === 'Escape') {
         e.preventDefault();
         restart();
         return;
       }
+      // Keys aimed at a focused control (a pill, the pack list, a link) belong to that control.
+      if (e.target instanceof Element && e.target.closest('button, select, input, textarea, a, [contenteditable]')) return;
       const altGr = e.getModifierState?.('AltGraph') ?? false;
       if ((!altGr && (e.ctrlKey || e.altKey)) || e.metaKey || e.isComposing) return;
       const isChar = e.key.length === 1;

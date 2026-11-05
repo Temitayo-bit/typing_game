@@ -84,7 +84,7 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
         <Button kind="soft" onClick={onRetry}>
           Retry same text
         </Button>
-        <span className="self-center text-sm text-muted">or press tab</span>
+        <span className="self-center text-sm text-muted">or press esc for new text</span>
       </div>
     </section>
   );

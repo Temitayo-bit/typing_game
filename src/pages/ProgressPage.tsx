@@ -151,7 +151,7 @@ function Backup({ onImported }: { onImported: () => void }) {
           e.target.value = '';
         }}
       />
-      {message && <p className="w-full text-sm text-wine">{message}</p>}
+      {message && <p className="w-full text-sm text-wine" role="status">{message}</p>}
     </Card>
   );
 }

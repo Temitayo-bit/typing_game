@@ -45,7 +45,11 @@ export function PracticePage({ selection, setSelection, results, unlocked, onFin
           <select
             className="min-h-11 rounded-full bg-petal px-3 text-wine"
             value={selection.kind === 'pack' ? selection.packId : ''}
-            onChange={(e) => e.target.value && setSelection({ kind: 'pack', packId: e.target.value })}
+            onChange={(e) => {
+              if (e.target.value) setSelection({ kind: 'pack', packId: e.target.value });
+              // Hand the keyboard back to the test so typing doesn't search the list.
+              e.target.blur();
+            }}
           >
             <option value="">choose…</option>
             {packs.map((p) => (

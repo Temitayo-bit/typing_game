@@ -87,12 +87,12 @@ export default function App() {
       )}
       <main className="mx-auto box-border flex w-full max-w-[1200px] flex-1 flex-col gap-6 px-4 py-8 sm:px-10">
         {loadError && (
-          <p className="rounded-2xl bg-petal px-5 py-3 text-sm text-wine">
+          <p className="rounded-2xl bg-petal px-5 py-3 text-sm text-wine" role="alert">
             Couldn't load your past results on this browser, so progress shown here may be incomplete.
           </p>
         )}
         {saveError && (
-          <p className="rounded-2xl bg-petal px-5 py-3 text-sm text-wine">
+          <p className="rounded-2xl bg-petal px-5 py-3 text-sm text-wine" role="alert">
             This result couldn't be saved, your browser may be blocking storage.
           </p>
         )}

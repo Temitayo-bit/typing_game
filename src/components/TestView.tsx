@@ -89,11 +89,18 @@ export function TestView(props: Props) {
         <WordsView test={test} faded={paused} />
         {test.status === 'ready' && <p className="mt-2 text-muted">start typing whenever you're ready</p>}
         {paused && <p className="mt-2 font-bold text-berry">paused, press any key to carry on</p>}
+        {test.status === 'running' && mode.kind === 'text' && test.wordIndex === test.targets.length - 1 &&
+          (test.typed[test.wordIndex] ?? '').length >= (test.targets[test.wordIndex] ?? '').length && (
+            <p className="mt-2 text-muted">press space to finish</p>
+          )}
         {capsLock && <p className="mt-2 font-bold text-error">caps lock is on</p>}
       </div>
       {guide && <KeyboardGuide nextChar={nextChar(test)} unlocked={guide.unlocked} fresh={guide.fresh} />}
       <p className="text-center text-sm text-muted">
-        <Kbd>tab</Kbd> or <Kbd>esc</Kbd> to restart
+        <Kbd>esc</Kbd> to restart
+      </p>
+      <p className="text-center text-sm text-muted sm:hidden">
+        Typing practice needs a real keyboard, so this works best on a laptop.
       </p>
     </section>
   );
