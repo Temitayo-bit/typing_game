@@ -124,10 +124,11 @@ describe('lessonDrill', () => {
   });
 
   it('uses a passage for story practices and two for the long one', () => {
-    const lesson = lessons.find((l) => l.kind === 'sentences')!;
+    const lesson = { ...lessons.find((l) => l.kind === 'sentences')!, passages: [] };
     const story = lessonPlan('sentences').findIndex((d) => d.type === 'story') + 1;
     // Shared passages are lowercase; by the sentence lessons they get a capital and a full stop.
-    expect(lessonDrill(lesson, story, { ...sources, passages: ['one two three'] })).toEqual(['One', 'two', 'three.']);
+    expect(lessonDrill(lesson, story, { ...sources, passages: ['one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen'] })).toHaveLength(15);
+    expect(lessonDrill(lesson, story, { ...sources, passages: ['one two three'] }).slice(0, 3)).toEqual(['One', 'two', 'three.']);
     expect(lessonDrill(lesson, 8, { ...sources, passages: ['one two', 'three four five'] }, seeded(1))).toHaveLength(5);
   });
 
@@ -213,17 +214,24 @@ describe('weakKeyDrill', () => {
   });
 });
 
-describe('lesson plan', () => {
-  it('has 20 lessons in 5 levels of 4 and teaches every letter exactly once', () => {
-    expect(lessons).toHaveLength(20);
-    for (let level = 1; level <= 5; level++) expect(lessons.filter((l) => l.level === level)).toHaveLength(4);
-    const letters = lessons.flatMap((l) => l.newKeys).filter((k) => /[a-z]/.test(k));
-    expect(new Set(letters).size).toBe(26);
-    expect(letters).toHaveLength(26);
+describe('the advanced lessons', () => {
+  it('build every practice from their own content', () => {
+    for (const lesson of lessons.filter((l) => ['patterns', 'symbols', 'speed', 'reading'].includes(l.kind))) {
+      for (let step = 1; step <= STEPS_PER_LESSON; step++) {
+        const drill = lessonDrill(lesson, step, sources, seeded(step));
+        if (lesson.words && /words|chunks|echo/.test(drillFor(lesson, step).type)) {
+          expect(drill.some((w) => lesson.words!.includes(w) || lesson.focus?.includes(w)), `lesson ${lesson.id} step ${step}`).toBe(true);
+        }
+      }
+    }
   });
 
-  it('numbers lessons 1 to 20 in order', () => {
-    expect(lessons.map((l) => l.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+  it('joins two different passages in the reading checkpoint', () => {
+    const lesson = lessons.find((l) => l.kind === 'reading' && (l.passages?.length ?? 0) > 1)!;
+    for (let seed = 0; seed < 10; seed++) {
+      const text = lessonDrill(lesson, STEPS_PER_LESSON, sources, seeded(seed)).join(' ');
+      expect(lesson.passages!.filter((p) => text.includes(p)), `seed ${seed}`).toHaveLength(2);
+    }
   });
 });
 

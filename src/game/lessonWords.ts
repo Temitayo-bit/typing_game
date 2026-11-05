@@ -93,7 +93,7 @@ function build(type: DrillType, c: Ctx): string[] {
         return r < 0.4 ? chunk : r < 0.6 || words.length === 0 ? chunk + chunk : pick(words);
       });
     case 'pairs': {
-      const old = c.allowed.filter((k) => !c.focus.includes(k));
+      const old = c.allowed.filter((k) => !c.focus.includes(k) && (/[a-z]/.test(k) || c.lesson.kind === 'keys'));
       const others = old.length > 0 ? old : c.focus;
       const shapes = [(a: string, b: string) => a + b, (a: string, b: string) => b + a, (a: string, b: string) => a + a + b, (a: string, b: string) => a + b + a + b];
       return fill(() => pick(shapes)(pick(c.focus), pick(others)));
@@ -165,8 +165,18 @@ function build(type: DrillType, c: Ctx): string[] {
       const filled = text.numberTemplates.map((t) => t.replace(/#/g, () => plural(c)));
       return phrases(filled, c);
     }
-    case 'story':
-      return c.passages.length > 0 ? splitText(pick(c.passages)) : phrases(text.capitalSentences, c);
+    case 'story': {
+      if (c.passages.length === 0) return phrases(text.capitalSentences, c);
+      // Short passages (like everyday phrases) get a second one so the practice isn't over in seconds.
+      let left = [...c.passages];
+      const words: string[] = [];
+      while (words.length < 15 && left.length > 0) {
+        const next = pick(left);
+        left = left.filter((p) => p !== next);
+        words.push(...splitText(next));
+      }
+      return words;
+    }
     case 'long-story': {
       if (c.passages.length === 0) return phrases(text.capitalSentences, c);
       const first = pick(c.passages);
@@ -182,7 +192,7 @@ function build(type: DrillType, c: Ctx): string[] {
       if (symbols.length === 0 || c.words.length === 0) return mixedWords(c);
       return fill(() => {
         const w = pick(c.words);
-        if (c.random() < 0.4) return w;
+        if (c.random() < 0.4 || symbols.some((k) => w.includes(k))) return w;
         return c.random() < 0.5 ? pick(symbols) + w : w + pick(symbols);
       }).filter(c.typeable);
     }

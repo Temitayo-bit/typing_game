@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { lessons } from '../data/lessons';
 import type { SavedResult } from './history';
 import { parseExport } from './history';
 import { activityByDay, dayStreak, isUnlocked, longestStreak, lessonStatus, nextStep, personalBest, topMissedKeys, unlockedStep } from './progress';
@@ -92,7 +93,12 @@ describe('lesson steps', () => {
   });
 
   it('never goes past the very last step', () => {
-    expect(unlockedStep([pass('lesson-20-8')])).toEqual({ lessonId: 20, step: 8 });
+    const last = lessons.length;
+    expect(unlockedStep([pass(`lesson-${last}-8`)])).toEqual({ lessonId: last, step: 8 });
+  });
+
+  it('carries on into the advanced levels after the old final lesson', () => {
+    expect(unlockedStep([pass('lesson-20-8')])).toEqual({ lessonId: 21, step: 1 });
   });
 
   it('ignores results for lessons that do not exist', () => {
@@ -115,7 +121,8 @@ describe('lesson steps', () => {
 
   it('finds the next step', () => {
     expect(nextStep({ lessonId: 1, step: 8 })).toEqual({ lessonId: 2, step: 1 });
-    expect(nextStep({ lessonId: 20, step: 8 })).toBeNull();
+    expect(nextStep({ lessonId: 20, step: 8 })).toEqual({ lessonId: 21, step: 1 });
+    expect(nextStep({ lessonId: lessons.length, step: 8 })).toBeNull();
     expect(isUnlocked({ lessonId: 2, step: 3 }, { lessonId: 2, step: 2 })).toBe(false);
   });
 });

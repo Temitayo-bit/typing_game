@@ -5,6 +5,8 @@ type Props = { nextChar: string | undefined; unlocked?: ReadonlySet<string>; fre
 export function KeyboardGuide({ nextChar, unlocked, fresh = [] }: Props) {
   const next = nextChar === undefined ? undefined : keyFor(nextChar);
   const finger = next ? fingerFor(next.key) : undefined;
+  // Symbols live on Shift, so light up the key they are typed on.
+  const freshKeys = fresh.map((c) => keyFor(c).key);
   const hint =
     next && finger
       ? `${next.key === ' ' ? 'space' : nextChar}: ${finger === 'thumb' ? 'either thumb' : `${finger} finger`}${
@@ -21,7 +23,7 @@ export function KeyboardGuide({ nextChar, unlocked, fresh = [] }: Props) {
               key={k}
               label={k}
               active={next?.key === k}
-              fresh={fresh.includes(k)}
+              fresh={freshKeys.includes(k)}
               locked={unlocked !== undefined && !unlocked.has(k)}
             />
           ))}
