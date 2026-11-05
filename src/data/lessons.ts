@@ -132,7 +132,7 @@ export function findLesson(id: number): Lesson | undefined {
 
 /** Extra beginner-friendly words so early lessons still use real words. */
 export const lessonWordPool = `a as ad add all ask asks fad fall falls flask lad lads lass sad salad dad dads ja la sala alfalfa
-gas glad flag hall half has had dash hash shall flash slash gash lash sash hag
+gas glad flag hall half has had dash hash shall flash slash lash sash
 see sea seed feel feed fee field fill kid kids lid side slide ideal deal deals idle hike like likes
 red read rid ride rule sure dues fur fuel hurt use user rude sugar real fire dear jade lure
 the tie tea that this they yet try type tree art eat hat sit sky style dirty kitty truly

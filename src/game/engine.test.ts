@@ -125,3 +125,38 @@ describe('engine edge cases', () => {
     expect(type(words, 'hi \b').typed).toEqual(['hi', '']);
   });
 });
+
+describe('practice rules', () => {
+  it('ignores backspace when backspace is off', () => {
+    const s = type(createTest({ kind: 'text' }, ['hi', 'you'], { noBackspace: true }), 'hx\b');
+    expect(s.typed[0]).toBe('hx');
+  });
+
+  it('holds the cursor on a wrong key until the right one, counting the miss', () => {
+    const strict = createTest({ kind: 'text' }, ['hi', 'you'], { stopOnError: true });
+    const s = type(strict, 'hxi');
+    expect(s.typed[0]).toBe('hi');
+    expect(s.keystrokes.map((k) => k.correct)).toEqual([true, false, true]);
+  });
+
+  it('counts a run of wrong presses at one spot as a single miss', () => {
+    const strict = createTest({ kind: 'text' }, ['hi', 'you'], { stopOnError: true });
+    const s = type(strict, 'hxxxi');
+    expect(s.keystrokes.map((k) => k.correct)).toEqual([true, false, true]);
+  });
+
+  it('expects space after a finished word when the cursor waits', () => {
+    const strict = createTest({ kind: 'text' }, ['hi', 'you'], { stopOnError: true });
+    const s = type(strict, 'hix');
+    expect(s.typed[0]).toBe('hi');
+    expect(s.keystrokes.at(-1)).toMatchObject({ expected: ' ', typed: 'x', correct: false });
+  });
+
+  it('does not let space skip a word with letters missing when the cursor waits', () => {
+    const strict = createTest({ kind: 'text' }, ['hi', 'you'], { stopOnError: true });
+    const s = type(strict, 'h ');
+    expect(s.wordIndex).toBe(0);
+    expect(s.keystrokes.at(-1)).toMatchObject({ typed: ' ', correct: false });
+    expect(type(s, 'i you').status).toBe('finished');
+  });
+});

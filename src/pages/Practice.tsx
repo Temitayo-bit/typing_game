@@ -4,8 +4,8 @@ import type { LessonOutcome } from '../components/ResultCard';
 import type { Result } from '../game/stats';
 import { wordSource } from '../game/sources';
 import type { SavedResult } from '../lib/history';
-import { engineMode, modeLabel, selectionKey, type ModeKey, type Selection } from '../lib/modes';
-import { personalBest, type StepRef } from '../lib/progress';
+import { engineMode, modeLabel, selectionKey, testRules, type ModeKey, type Selection } from '../lib/modes';
+import { personalBest, topMissedKeys, type StepRef } from '../lib/progress';
 
 type Props = {
   selection: Selection;
@@ -26,14 +26,17 @@ export function Practice({ selection, results, unlocked, onFinish, showKeyboard,
   const instance = selection.kind === 'weak' ? `${key}:${selection.keys.join('')}` : key;
   // The word source is fixed per selection so a running test is never swapped out.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const makeWords = useMemo(() => wordSource(selection, unlocked), [instance]);
+  const makeWords = useMemo(() => wordSource(selection, unlocked, Math.random, topMissedKeys(results).map(([k]) => k)), [instance]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mode = useMemo(() => engineMode(selection), [key]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rules = useMemo(() => testRules(selection), [key]);
   const finish = useCallback((r: Result) => onFinish(key, r), [key, onFinish]);
   return (
     <TestView
       key={instance}
       mode={mode}
+      rules={rules}
       modeLabel={modeLabel(key)}
       makeWords={makeWords}
       previousBest={personalBest(results, key)?.wpm}

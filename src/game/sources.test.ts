@@ -35,6 +35,14 @@ describe('fixed texts', () => {
     expect(words.join(' ')).toBe(packs[0]!.passages[0]);
   });
 
+  it('brings a different passage for each next test in a pack', () => {
+    const pack = packs[0]!;
+    const source = wordSource({ kind: 'pack', packId: pack.id }, { lessonId: 1, step: 1 }, () => 0);
+    const seen = Array.from({ length: pack.passages.length }, () => source(60).join(' '));
+    expect(new Set(seen).size).toBe(pack.passages.length);
+    expect(source(60).join(' ')).toBe(seen[0]);
+  });
+
   it('serves the chosen note', () => {
     const note = notes[1]!;
     expect(wordSource({ kind: 'note', noteId: note.id }, { lessonId: 1, step: 1 })(60).join(' ')).toBe(note.text);

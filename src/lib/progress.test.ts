@@ -83,6 +83,8 @@ describe('lesson steps', () => {
 
   it('unlocks the next step at 90% accuracy, whatever the speed', () => {
     expect(unlockedStep([result({ mode: 'lesson-1-1', accuracy: 90, wpm: 2 })])).toEqual({ lessonId: 1, step: 2 });
+    // One right letter in a timed sprint is 100% accurate but not a pass.
+    expect(unlockedStep([result({ mode: 'lesson-1-1', accuracy: 100, correctChars: 1 })])).toEqual({ lessonId: 1, step: 1 });
     expect(unlockedStep([result({ mode: 'lesson-1-1', accuracy: 89.9, wpm: 80 })])).toEqual({ lessonId: 1, step: 1 });
   });
 

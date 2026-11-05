@@ -14,10 +14,18 @@ export type Keystroke = {
 
 export type Status = 'ready' | 'running' | 'finished';
 
+/** Optional twists a practice can add on top of a mode. */
+export type Rules = {
+  noBackspace?: boolean;
+  /** A wrong key is counted as a miss but the cursor stays put until the right key comes. */
+  stopOnError?: boolean;
+};
+
 /** Invariant: typed.length === wordIndex + 1 (one entry per word reached). */
 export type TestState = {
   status: Status;
   mode: Mode;
+  rules: Rules;
   targets: string[];
   typed: string[];
   wordIndex: number;
@@ -31,9 +39,9 @@ export type Action =
   | { type: 'backspace'; t: number }
   | { type: 'finish' };
 
-export function createTest(mode: Mode, targets: string[]): TestState {
+export function createTest(mode: Mode, targets: string[], rules: Rules = {}): TestState {
   if (targets.length === 0) throw new Error('A test needs at least one word');
-  return { status: 'ready', mode, targets, typed: [''], wordIndex: 0, keystrokes: [], netTimeline: [] };
+  return { status: 'ready', mode, rules, targets, typed: [''], wordIndex: 0, keystrokes: [], netTimeline: [] };
 }
 
 export function reduce(state: TestState, action: Action): TestState {
@@ -60,6 +68,7 @@ function char(state: TestState, c: string, t: number): TestState {
   const target = state.targets[state.wordIndex] ?? '';
   const current = state.typed[state.wordIndex] ?? '';
   const expected = target[current.length] ?? null;
+  if (state.rules.stopOnError && c !== expected) return heldMiss(state, expected ?? ' ', c, t);
   const typed = withWord(state.typed, state.wordIndex, current + c);
   const next: TestState = {
     ...state,
@@ -82,6 +91,7 @@ function space(state: TestState, t: number): TestState {
   const skipped = current.length < target.length;
   const expected = skipped ? (target[current.length] ?? ' ') : ' ';
   const keystroke: Keystroke = { t, expected, typed: ' ', correct: !skipped };
+  if (skipped && state.rules.stopOnError) return heldMiss(state, expected, ' ', t);
   const keystrokes = [...state.keystrokes, keystroke];
   const isLastWord = state.wordIndex === state.targets.length - 1;
   return {
@@ -93,7 +103,18 @@ function space(state: TestState, t: number): TestState {
   };
 }
 
+/**
+ * A wrong key while the cursor waits. Only the first wrong press at a spot counts as a miss,
+ * so hunting for a key isn't punished over and over.
+ */
+function heldMiss(state: TestState, expected: string, typed: string, t: number): TestState {
+  const last = state.keystrokes.at(-1);
+  if (last && !last.correct) return state.status === 'running' ? state : { ...state, status: 'running' };
+  return { ...state, status: 'running', keystrokes: [...state.keystrokes, { t, expected, typed, correct: false }] };
+}
+
 function backspace(state: TestState): TestState {
+  if (state.rules.noBackspace) return state;
   const current = state.typed[state.wordIndex] ?? '';
   if (current.length > 0) {
     return { ...state, typed: withWord(state.typed, state.wordIndex, current.slice(0, -1)) };
