@@ -178,4 +178,26 @@ describe('level exams', () => {
     expect(passedExam([pass('exam-11')], 11)).toBe(false);
     expect(passedExam([pass('exam-0')], 0)).toBe(false);
   });
+
+  it('needs more than a few words in an exam, so waiting out the clock does not pass', () => {
+    expect(passedExam([pass('exam-1', { correctChars: 59 })], 1)).toBe(false);
+    expect(passedExam([pass('exam-1', { correctChars: 60 })], 1)).toBe(true);
+  });
+
+  it('keeps a lesson open that was already being tried before exams existed', () => {
+    const rs = [pass('lesson-4-8'), pass('lesson-5-1', { accuracy: 60 })];
+    expect(unlockedStep(rs)).toEqual({ lessonId: 5, step: 1 });
+  });
+
+  it('holds an old player at the next boundary too, and lets exam 2 through while exam 1 is owed', () => {
+    expect(unlockedStep([pass('lesson-8-8')])).toEqual({ lessonId: 8, step: 8 });
+    expect(unlockedStep([pass('lesson-8-8'), pass('exam-2')])).toEqual({ lessonId: 9, step: 1 });
+  });
+
+  it('opens the final exam after the last practice and stays on the last step after it', () => {
+    const last = pass(`lesson-${lessons.length}-8`);
+    expect(examOpen([last], 10)).toBe(true);
+    expect(unlockedStep([last])).toEqual({ lessonId: lessons.length, step: 8 });
+    expect(unlockedStep([last, pass('exam-10')])).toEqual({ lessonId: lessons.length, step: 8 });
+  });
 });

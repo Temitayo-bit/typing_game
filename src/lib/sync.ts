@@ -1,4 +1,5 @@
 import { addMissing, loadResults, parseExport, type SavedResult } from './history';
+import { isModeKey } from './modes';
 import { parseSettings, type Settings } from './settings';
 import { supabase } from './supabase';
 
@@ -32,7 +33,8 @@ export function toRow(r: SavedResult, userId?: string): Row {
 export function fromRows(rows: readonly Row[]): SavedResult[] {
   return parseExport({
     version: 1,
-    results: rows.map((w) => ({
+    // A mode added by a newer version of the app is skipped, not allowed to fail the whole sync.
+    results: rows.filter((w) => isModeKey(w.mode)).map((w) => ({
       mode: w.mode, finishedAt: Number(w.finished_at), wpm: w.wpm, rawWpm: w.raw_wpm, accuracy: w.accuracy,
       correctChars: w.correct_chars, typedChars: w.typed_chars, durationMs: w.duration_ms,
       missedKeys: w.missed_keys, keyPresses: w.key_presses, wpmBySecond: w.wpm_by_second, textKeys: w.text_keys,

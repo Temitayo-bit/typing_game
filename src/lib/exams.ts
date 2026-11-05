@@ -2,7 +2,7 @@ import { lessonsInLevel, starsFor } from '../data/exams';
 import { levels, STEPS_PER_LESSON } from '../data/lessons';
 import type { SavedResult } from './history';
 import { isSpeedTest, parseExamKey } from './modes';
-import { examOpen, isUnlocked, passedExam, passedStep, passedStepsOf, type StepRef } from './progress';
+import { examOpen, examPassed, isUnlocked, passedExam, passedStepsOf, type StepRef } from './progress';
 
 export type LevelState = 'passed' | 'exam-ready' | 'learning' | 'locked';
 
@@ -37,7 +37,7 @@ export function levelProgress(results: readonly SavedResult[], unlocked: StepRef
 function bestPass(results: readonly SavedResult[], level: number): SavedResult | undefined {
   let best: SavedResult | undefined;
   for (const r of results) {
-    if (parseExamKey(r.mode) === level && passedStep(r) && (!best || r.wpm > best.wpm)) best = r;
+    if (parseExamKey(r.mode) === level && examPassed(r) && (!best || r.wpm > best.wpm)) best = r;
   }
   return best;
 }
@@ -87,7 +87,7 @@ export function growthSeries(results: readonly SavedResult[], limit = 40): { wpm
     .filter((r) => parseExamKey(r.mode) !== null || (isSpeedTest(r.mode) && r.durationMs >= COMPARABLE_MS - 500))
     .sort((a, b) => a.finishedAt - b.finishedAt)
     .slice(-limit)
-    .map((r) => ({ wpm: r.wpm, exam: parseExamKey(r.mode) !== null && passedStep(r) }));
+    .map((r) => ({ wpm: r.wpm, exam: parseExamKey(r.mode) !== null && examPassed(r) }));
 }
 
 function median(xs: readonly number[]): number {

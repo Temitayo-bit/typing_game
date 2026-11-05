@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react';
-import { EXAM_SECONDS, findLevel, lessonsInLevel, NEW_SHARE, starsFor, starTargets } from '../data/exams';
+import { useCallback, useRef, useState } from 'react';
+import { EXAM_MIN_CHARS, EXAM_SECONDS, findLevel, lessonsInLevel, NEW_SHARE, starsFor, starTargets } from '../data/exams';
 import { levels, PASS_ACCURACY } from '../data/lessons';
 import type { Result } from '../game/stats';
 import type { SavedResult } from '../lib/history';
 import type { ModeKey } from '../lib/modes';
-import { examOpen, MIN_PASS_CHARS, passedExam, passedStep, type StepRef } from '../lib/progress';
+import { examOpen, examPassed, isUnlocked, passedExam, type StepRef } from '../lib/progress';
 import { levelProgress } from '../lib/exams';
 import type { Route } from '../lib/route';
 import type { LessonOutcome } from '../components/ResultCard';
@@ -23,37 +23,42 @@ type Props = {
 
 export function ExamView({ level, results, unlocked, go, onFinish, onDrillKeys }: Props) {
   const [started, setStarted] = useState(false);
-  // Fixed when the try starts, so a retake doesn't announce a level that was already open.
-  const [retake, setRetake] = useState(false);
   const info = findLevel(level);
   const lessons = lessonsInLevel(level);
   const isFinal = level === levels.at(-1)?.id;
   const nextLesson = lessonsInLevel(level + 1)[0];
 
+  // Worked out when the try ends, before it is saved, so a retake or an exam owed from
+  // before exams existed doesn't announce a level that was already open.
+  const opensLevel = !passedExam(results, level) && nextLesson !== undefined && !isUnlocked({ lessonId: nextLesson.id, step: 1 }, unlocked);
+  // Saving the pass re-renders with the level open, so remember what this try unlocked.
+  const unlockedByThisTry = useRef(false);
   const outcome = useCallback(
     (r: Result): LessonOutcome => {
-      if (passedStep(r)) {
+      unlockedByThisTry.current = examPassed(r) && opensLevel;
+      if (examPassed(r)) {
         const stars = starsFor(level, r.wpm);
         const starText = stars === 3 ? ' Three stars, too!' : stars > 0 ? ` ${stars} of 3 stars.` : '';
-        if (retake) return { passed: true, hasNext: true, message: `Passed again, nice!${starText}`, nextLabel: 'Back to lessons' };
+        if (opensLevel) {
+          return { passed: true, hasNext: true, message: `Level ${level} passed! Level ${level + 1} is open now.${starText}`, nextLabel: `Start lesson ${nextLesson!.id}` };
+        }
         return {
           passed: true,
           hasNext: true,
-          message: isFinal
-            ? `Level ${level} passed. That was the final exam!${starText}`
-            : `Level ${level} passed! Level ${level + 1} is open now.${starText}`,
-          nextLabel: nextLesson ? `Start lesson ${nextLesson.id}` : 'See your milestones',
+          message: isFinal ? `Level ${level} passed. That was the final exam!${starText}` : `Level ${level} exam passed!${starText}`,
+          nextLabel: isFinal ? 'See your milestones' : 'Back to lessons',
         };
       }
-      if (r.correctChars < MIN_PASS_CHARS) return { passed: false, tooShort: true, message: 'Keep typing until the clock runs out, then it counts.' };
+      if (r.correctChars < EXAM_MIN_CHARS) return { passed: false, tooShort: true, message: 'Keep typing until the clock runs out, then it counts.' };
       return {
         passed: false,
         message: `So close. ${Math.round(r.accuracy)}% accuracy, you need ${PASS_ACCURACY}%. Nothing is lost, try as many times as you like.`,
         nextLabel: 'Try the exam again',
       };
     },
-    [level, isFinal, nextLesson, retake],
+    [level, isFinal, nextLesson, opensLevel],
   );
+  const afterPass = (): Route => (unlockedByThisTry.current ? { page: 'lesson', lessonId: nextLesson!.id } : isFinal ? { page: 'progress' } : { page: 'lessons' });
 
   if (!info || !examOpen(results, level)) {
     const last = lessons.at(-1);
@@ -102,12 +107,7 @@ export function ExamView({ level, results, unlocked, go, onFinish, onDrillKeys }
               </p>
             )}
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                onClick={() => {
-                  setRetake(passedExam(results, level));
-                  setStarted(true);
-                }}
-              >{passedExam(results, level) ? 'Take it again' : 'Start exam'}</Button>
+              <Button onClick={() => setStarted(true)}>{passedExam(results, level) ? 'Take it again' : 'Start exam'}</Button>
               <span className="text-sm text-muted">The keyboard picture stays off in exams.</span>
             </div>
           </>
@@ -118,7 +118,7 @@ export function ExamView({ level, results, unlocked, go, onFinish, onDrillKeys }
             unlocked={unlocked}
             onFinish={onFinish}
             lessonOutcome={outcome}
-            onNextLesson={() => go(retake ? { page: 'lessons' } : nextLesson ? { page: 'lesson', lessonId: nextLesson.id } : { page: 'progress' })}
+            onNextLesson={() => go(afterPass())}
             onDrillKeys={onDrillKeys}
           />
         )}

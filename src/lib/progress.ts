@@ -1,4 +1,4 @@
-import { lessonsInLevel, levelOf } from '../data/exams';
+import { EXAM_MIN_CHARS, lessonsInLevel, levelOf } from '../data/exams';
 import { lessons, PASS_ACCURACY, STEPS_PER_LESSON } from '../data/lessons';
 import type { SavedResult } from './history';
 import { parseExamKey, type ModeKey } from './modes';
@@ -97,13 +97,20 @@ export function unlockedStep(results: readonly SavedResult[]): StepRef {
   const next = Math.min(furthest + 1, LAST_INDEX);
   if (furthest >= 0 && next > furthest) {
     const level = levelOf(fromIndex(furthest).lessonId)!;
-    if (levelOf(fromIndex(next).lessonId) !== level && !passedExam(results, level)) return fromIndex(furthest);
+    const crosses = levelOf(fromIndex(next).lessonId) !== level;
+    // A try at the next lesson means it was already open before exams existed.
+    const tried = results.some((r) => { const ref = parseLessonKey(r.mode); return ref !== null && stepIndex(ref) === next; });
+    if (crosses && !tried && !passedExam(results, level)) return fromIndex(furthest);
   }
   return fromIndex(next);
 }
 
+export function examPassed(result: Pick<SavedResult, 'accuracy' | 'correctChars'>): boolean {
+  return result.accuracy >= PASS_ACCURACY && result.correctChars >= EXAM_MIN_CHARS;
+}
+
 export function passedExam(results: readonly SavedResult[], level: number): boolean {
-  return results.some((r) => parseExamKey(r.mode) === level && passedStep(r));
+  return results.some((r) => parseExamKey(r.mode) === level && examPassed(r));
 }
 
 /** An exam opens once the last practice of its level has been passed. */

@@ -104,7 +104,14 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
           lessonOutcome={(r) =>
             passedStep(r)
               ? examLevel !== null
-                ? { passed: true, hasNext: true, message: `Lesson ${lesson.id} done! The level ${lesson.level} exam is open now.`, nextLabel: 'Go to the exam' }
+                ? {
+                    passed: true,
+                    hasNext: true,
+                    message: examOpen(results, lesson.level)
+                      ? `Practice passed! Your level ${lesson.level} exam is waiting.`
+                      : `Lesson ${lesson.id} done! The level ${lesson.level} exam is open now.`,
+                    nextLabel: 'Go to the exam',
+                  }
                 : { passed: true, hasNext: !isLast }
               : { passed: false, tooShort: r.correctChars < MIN_PASS_CHARS }
           }

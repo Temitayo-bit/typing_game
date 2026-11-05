@@ -3,6 +3,9 @@ import { lessons, levels } from './lessons';
 /** One exam closes each level. It is timed so later levels don't turn into a 10-minute passage. */
 export const EXAM_SECONDS = 90;
 
+/** Correct letters an exam needs, about 8 wpm for the whole 90 seconds, so typing a few words and waiting doesn't pass. */
+export const EXAM_MIN_CHARS = 60;
+
 /** Share of an exam built from the level just finished; the rest revisits earlier levels. */
 export const NEW_SHARE = 0.6;
 
