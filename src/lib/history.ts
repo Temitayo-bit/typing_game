@@ -18,8 +18,31 @@ export let db: HistoryDb = openDb('typing-game');
 export function switchHistory(userId: string | null): void {
   const name = userId ? `typing-game-${userId}` : 'typing-game';
   if (db.name === name) return;
-  db.close();
+  // The old handle isn't closed: a save still finishing for the previous account completes
+  // into its own store instead of failing.
   db = openDb(name);
+}
+
+const LEGACY_CLAIMED = 'typing-game-legacy-claimed';
+
+/**
+ * Results saved before accounts existed live in the shared store. The first account to sign
+ * in on this browser takes them over, once, so nobody's earlier progress disappears.
+ */
+export async function claimLegacyResults(userId: string): Promise<void> {
+  try {
+    if (localStorage.getItem(LEGACY_CLAIMED)) return;
+    localStorage.setItem(LEGACY_CLAIMED, userId);
+  } catch {
+    return;
+  }
+  const legacy = openDb('typing-game');
+  try {
+    const old = await legacy.results.toArray();
+    if (old.length > 0) await addMissing(old);
+  } finally {
+    legacy.close();
+  }
 }
 
 /** Adds results that aren't stored yet (same finish time and mode). Returns how many were added. */

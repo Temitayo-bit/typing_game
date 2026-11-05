@@ -8,7 +8,8 @@ const defaults = defaultSettings;
 
 export function loadSettings(userId: string | null = null): Settings {
   try {
-    return parseSettings(localStorage.getItem(keyFor(userId)));
+    // Before accounts, settings were stored without an id; carry them over the first time.
+    return parseSettings(localStorage.getItem(keyFor(userId)) ?? localStorage.getItem(keyFor(null)));
   } catch {
     return defaults;
   }
@@ -27,6 +28,26 @@ export function parseSettings(raw: string | null): Settings {
     };
   } catch {
     return defaults;
+  }
+}
+
+const unsyncedKey = (userId: string) => `typing-game-settings-unsynced-${userId}`;
+
+/** Marks local edits the server hasn't confirmed, so a later pull doesn't overwrite them. */
+export function markUnsynced(userId: string, unsynced: boolean): void {
+  try {
+    if (unsynced) localStorage.setItem(unsyncedKey(userId), '1');
+    else localStorage.removeItem(unsyncedKey(userId));
+  } catch {
+    // Storage blocked: worst case the server copy wins on next load.
+  }
+}
+
+export function hasUnsynced(userId: string): boolean {
+  try {
+    return localStorage.getItem(unsyncedKey(userId)) !== null;
+  } catch {
+    return false;
   }
 }
 

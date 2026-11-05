@@ -14,14 +14,16 @@ export function missingFrom<T extends Pick<SavedResult, 'finishedAt' | 'mode'>>(
 }
 
 type Row = {
-  mode: string; finished_at: number; wpm: number; raw_wpm: number; accuracy: number; correct_chars: number;
+  user_id?: string; mode: string; finished_at: number; wpm: number; raw_wpm: number; accuracy: number; correct_chars: number;
   typed_chars: number; duration_ms: number; missed_keys: unknown; wpm_by_second: unknown;
 };
 
-export function toRow(r: SavedResult): Row {
+export function toRow(r: SavedResult, userId?: string): Row {
   return {
-    mode: r.mode, finished_at: r.finishedAt, wpm: r.wpm, raw_wpm: r.rawWpm, accuracy: r.accuracy,
-    correct_chars: r.correctChars, typed_chars: r.typedChars, duration_ms: r.durationMs,
+    ...(userId ? { user_id: userId } : {}),
+    // Durations come from performance.now() and can be fractional; the columns are integers.
+    mode: r.mode, finished_at: Math.round(r.finishedAt), wpm: r.wpm, raw_wpm: r.rawWpm, accuracy: r.accuracy,
+    correct_chars: Math.round(r.correctChars), typed_chars: Math.round(r.typedChars), duration_ms: Math.round(r.durationMs),
     missed_keys: r.missedKeys, wpm_by_second: r.wpmBySecond,
   };
 }
@@ -40,27 +42,43 @@ export function fromRows(rows: readonly Row[]): SavedResult[] {
 
 const COLUMNS = 'mode, finished_at, wpm, raw_wpm, accuracy, correct_chars, typed_chars, duration_ms, missed_keys, wpm_by_second';
 
-async function upload(results: readonly SavedResult[]): Promise<void> {
+// The user id is sent explicitly so a session that changed mid-sync is rejected by RLS
+// instead of filing one account's results under another.
+async function upload(userId: string, results: readonly SavedResult[]): Promise<void> {
   if (!supabase || results.length === 0) return;
   const { error } = await supabase
     .from('results')
-    .upsert(results.map(toRow), { onConflict: 'user_id,finished_at,mode', ignoreDuplicates: true });
+    .upsert(results.map((r) => toRow(r, userId)), { onConflict: 'user_id,finished_at,mode', ignoreDuplicates: true });
   if (error) throw new Error("Couldn't back up results");
 }
 
 /** Two-way merge for the signed-in account. Returns how many results came down from the server. */
-export async function syncResults(): Promise<number> {
+const PAGE = 1000; // PostgREST's default row cap per request
+
+export async function syncResults(userId: string, stillCurrent: () => boolean): Promise<number> {
   if (!supabase) return 0;
-  const { data, error } = await supabase.from('results').select(COLUMNS).order('finished_at').limit(10_000);
-  if (error) throw new Error("Couldn't reach the server");
-  const remote = fromRows(data as Row[]);
+  const remote: SavedResult[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('results')
+      .select(COLUMNS)
+      .eq('user_id', userId)
+      .order('finished_at')
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error("Couldn't reach the server");
+    remote.push(...fromRows(data as Row[]));
+    if (data.length < PAGE) break;
+  }
+  // The account may have changed while we were waiting; never write into someone else's store.
+  if (!stillCurrent()) return 0;
   const pulled = await addMissing(remote);
-  await upload(missingFrom(await loadResults(), remote));
+  if (!stillCurrent()) return pulled;
+  await upload(userId, missingFrom(await loadResults(), remote));
   return pulled;
 }
 
-export function backUpResult(r: SavedResult): Promise<void> {
-  return upload([r]);
+export function backUpResult(userId: string, r: SavedResult): Promise<void> {
+  return upload(userId, [r]);
 }
 
 export async function pullSettings(): Promise<Settings | null> {

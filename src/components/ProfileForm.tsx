@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { photoProblem, photoUrl, saveProfile, uploadPhoto, type Profile } from '../lib/profile';
+import { deletePhoto, photoProblem, photoUrl, saveProfile, uploadPhoto, type Profile } from '../lib/profile';
 
 type Props = { userId: string; initial: Profile | null; submitLabel: string; onSaved: (p: Profile) => void };
 
@@ -12,6 +12,8 @@ export function ProfileForm({ userId, initial, submitLabel, onSaved }: Props) {
   const [goal, setGoal] = useState(initial?.goalWpm ? String(initial.goalWpm) : '');
   const [file, setFile] = useState<{ file: File; url: string } | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  // Set once the chosen photo is uploaded, so a retry after a failed save doesn't upload it again.
+  const [uploaded, setUploaded] = useState<{ file: File; path: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,9 +40,16 @@ export function ProfileForm({ userId, initial, submitLabel, onSaved }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const avatarPath = file ? await uploadPhoto(userId, file.file) : initial!.avatarPath;
+      let avatarPath = initial?.avatarPath ?? '';
+      if (file) {
+        avatarPath = uploaded?.file === file.file ? uploaded.path : await uploadPhoto(userId, file.file);
+        setUploaded({ file: file.file, path: avatarPath });
+      }
       const profile: Profile = { displayName: name.trim(), birthday: birthday || null, avatarPath, goalWpm };
       await saveProfile(userId, profile);
+      if (initial?.avatarPath && initial.avatarPath !== avatarPath) void deletePhoto(initial.avatarPath);
+      setFile(null);
+      setUploaded(null);
       onSaved(profile);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save, please try again");

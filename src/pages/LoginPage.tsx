@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { Card, Heart } from '../components/ui';
-import { sendMagicLink } from '../lib/auth';
+import { sendMagicLink, takeLinkError } from '../lib/auth';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(takeLinkError);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -30,7 +30,8 @@ export function LoginPage() {
           <div role="status" className="flex flex-col gap-2">
             <h1 className="m-0 font-display text-3xl font-semibold">Check your email</h1>
             <p className="m-0 text-muted">
-              We sent a sign-in link to <strong className="text-ink">{email.trim()}</strong>. Open it on this device to come straight in.
+              If <strong className="text-ink">{email.trim()}</strong> is invited, a sign-in link is on its way. Open it in this browser to
+              come straight in.
             </p>
             <button className="self-start text-sm font-bold text-berry underline" onClick={() => setState('idle')}>
               Use a different email

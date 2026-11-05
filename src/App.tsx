@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { useTheme } from './lib/useTheme';
 import type { Result } from './game/stats';
-import { loadResults, saveResult, switchHistory, type SavedResult } from './lib/history';
+import { claimLegacyResults, loadResults, saveResult, switchHistory, type SavedResult } from './lib/history';
 import { newMilestones, type Milestone } from './lib/milestones';
 import type { ModeKey, Selection } from './lib/modes';
 import { unlockedStep } from './lib/progress';
 import { useRoute } from './lib/route';
-import { loadSettings } from './lib/settings';
+import { hasUnsynced, loadSettings, markUnsynced, type Settings } from './lib/settings';
 import { photoUrl } from './lib/profile';
 import { backUpResult, pullSettings, pushSettings, syncResults } from './lib/sync';
 import { ProfilePage, type Account } from './pages/ProfilePage';
@@ -19,13 +19,27 @@ import { NotesPage } from './pages/NotesPage';
 import { PracticePage } from './pages/PracticePage';
 import { ProgressPage } from './pages/ProgressPage';
 
+function pushOwnSettings(userId: string, s: Settings): void {
+  markUnsynced(userId, true);
+  pushSettings(s).then(() => markUnsynced(userId, false), () => undefined);
+}
+
 export default function App({ account }: { account: Account | null }) {
   // App is keyed by account, so this runs once per signed-in person before anything loads.
+  const userId = account?.userId ?? null;
   useState(() => {
-    switchHistory(account?.userId ?? null);
-    switchSettings(account?.userId ?? null, account ? (s) => void pushSettings(s).catch(() => undefined) : null);
+    switchHistory(userId);
+    switchSettings(userId, userId ? (s) => pushOwnSettings(userId, s) : null);
     return null;
   });
+  // Signing out unmounts this App: leave nothing of this account running behind the login screen.
+  useEffect(
+    () => () => {
+      switchSettings(null);
+      switchHistory(null);
+    },
+    [],
+  );
   useTheme();
   useEffect(resumeMusicOnGesture, []);
   const [route, go] = useRoute();
@@ -40,7 +54,8 @@ export default function App({ account }: { account: Account | null }) {
   const [photo, setPhoto] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
-    loadResults()
+    (userId ? claimLegacyResults(userId).catch(() => undefined) : Promise.resolve())
+      .then(loadResults)
       .then(
         (rs) => {
           setResults(rs);
@@ -49,33 +64,47 @@ export default function App({ account }: { account: Account | null }) {
         () => setLoadError(true),
       )
       .finally(() => setLoaded(true));
-  }, []);
+  }, [userId]);
   useEffect(refresh, [refresh]);
 
-  const signedIn = account !== null;
   useEffect(() => {
-    if (!signedIn) return;
-    // Pull anything saved on her other devices, push anything only this browser has.
-    syncResults().then(
+    if (!userId) return;
+    let current = true;
+    // Pull anything saved on other devices, push anything only this browser has.
+    syncResults(userId, () => current).then(
       (pulled) => {
+        if (!current) return;
         setOffline(false);
         if (pulled > 0) refresh();
       },
-      () => setOffline(true),
+      () => current && setOffline(true),
     );
-    pullSettings().then(
-      (remote) => (remote ? applySettings(remote) : pushSettings(loadSettings(account?.userId ?? null))),
-      () => undefined,
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signedIn, refresh]);
+    // Local edits the server never confirmed win over the server copy.
+    if (hasUnsynced(userId)) pushOwnSettings(userId, loadSettings(userId));
+    else
+      pullSettings().then(
+        (remote) => {
+          if (!current || hasUnsynced(userId)) return;
+          if (remote) applySettings(remote);
+          else pushOwnSettings(userId, loadSettings(userId));
+        },
+        () => undefined,
+      );
+    return () => {
+      current = false;
+    };
+  }, [userId, refresh]);
 
   const avatarPath = account?.profile.avatarPath;
   useEffect(() => {
     let live = true;
-    if (avatarPath) photoUrl(avatarPath).then((u) => live && setPhoto(u));
+    const load = () => avatarPath && photoUrl(avatarPath).then((u) => live && setPhoto(u));
+    load();
+    // Signed links expire, so refresh well before that for a tab left open.
+    const timer = window.setInterval(load, 45 * 60 * 1000);
     return () => {
       live = false;
+      window.clearInterval(timer);
     };
   }, [avatarPath]);
 
@@ -91,13 +120,13 @@ export default function App({ account }: { account: Account | null }) {
         () => {
           setSaveError(false);
           // A failed backup is retried by the next sync, so it only flags the offline note.
-          if (signedIn) backUpResult(saved).then(() => setOffline(false), () => setOffline(true));
+          if (userId) backUpResult(userId, saved).then(() => setOffline(false), () => setOffline(true));
         },
         // The in-memory copy keeps progress working for this visit even though it won't survive a reload.
         () => setSaveError(true),
       );
     },
-    [results, loadError, signedIn],
+    [results, loadError, userId],
   );
 
   const practise = useCallback(

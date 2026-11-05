@@ -25,4 +25,10 @@ describe('sync', () => {
   it('rejects malformed rows instead of saving them', () => {
     expect(() => fromRows([{ ...toRow(r()), accuracy: 'high' as unknown as number }])).toThrow();
   });
+
+  it('rounds fractional durations for integer columns and tags the owner', () => {
+    const row = toRow(r({ durationMs: 23456.7 }), 'user-1');
+    expect(row.duration_ms).toBe(23457);
+    expect(row.user_id).toBe('user-1');
+  });
 });

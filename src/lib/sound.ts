@@ -19,7 +19,8 @@ export function switchSettings(userId: string | null, changed: ((s: Settings) =>
 export function applySettings(next: Settings): void {
   settings = next;
   storeSettings(settings, settingsUser);
-  if (!settings.music) stopMusic();
+  if (settings.music) startMusic();
+  else stopMusic();
   listeners.forEach((l) => l());
 }
 let ctx: AudioContext | null = null;

@@ -47,3 +47,23 @@ describe('switchHistory', () => {
     switchHistory(null);
   });
 });
+
+describe('claimLegacyResults', () => {
+  it('gives pre-account results to the first account only', async () => {
+    const store = new Map<string, string>();
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) },
+      configurable: true,
+    });
+    const { switchHistory, saveResult, claimLegacyResults } = await import('./history');
+    switchHistory(null);
+    await saveResult(result({ finishedAt: 77 }));
+    switchHistory('first');
+    await claimLegacyResults('first');
+    expect(await loadResults()).toHaveLength(1);
+    switchHistory('second');
+    await claimLegacyResults('second');
+    expect(await loadResults()).toHaveLength(0);
+    switchHistory(null);
+  });
+});

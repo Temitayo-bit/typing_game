@@ -50,7 +50,12 @@ export async function uploadPhoto(userId: string, file: File): Promise<string> {
   return path;
 }
 
+/** Best effort: an old photo left behind only costs a little storage. */
+export async function deletePhoto(path: string): Promise<void> {
+  await client().storage.from('avatars').remove([path]).catch(() => undefined);
+}
+
 export async function photoUrl(path: string): Promise<string | null> {
-  const { data, error } = await client().storage.from('avatars').createSignedUrl(path, 60 * 60 * 24);
+  const { data, error } = await client().storage.from('avatars').createSignedUrl(path, 60 * 60);
   return error ? null : data.signedUrl;
 }
