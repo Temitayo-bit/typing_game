@@ -4,7 +4,7 @@ import { findLesson, keysUpTo, lessons, PASS_ACCURACY, STEPS_PER_LESSON } from '
 import type { Result } from '../game/stats';
 import type { SavedResult } from '../lib/history';
 import { lessonKey, type ModeKey } from '../lib/modes';
-import { isUnlocked, nextStep, passedStep, passedStepsOf, type StepRef } from '../lib/progress';
+import { isUnlocked, MIN_PASS_CHARS, nextStep, passedStep, passedStepsOf, type StepRef } from '../lib/progress';
 import type { Route } from '../lib/route';
 import { Card } from '../components/ui';
 import { Practice } from './Practice';
@@ -85,7 +85,7 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
           unlocked={unlocked}
           onFinish={finish}
           guide={drill.hideKeyboard ? undefined : { unlocked: keysUpTo(lesson.id), fresh: lesson.newKeys }}
-          lessonOutcome={(r) => (passedStep(r) ? { passed: true, hasNext: !isLast } : { passed: false })}
+          lessonOutcome={(r) => (passedStep(r) ? { passed: true, hasNext: !isLast } : { passed: false, tooShort: r.correctChars < MIN_PASS_CHARS })}
           onNextLesson={goNext}
         />
         <p className="m-0 text-[15px] text-muted">

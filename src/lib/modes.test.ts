@@ -58,6 +58,6 @@ describe('lesson practice twists', () => {
   it('switches off backspace in the checkpoint and holds the cursor in the strict practice', () => {
     expect(testRules({ kind: 'lesson', lessonId: 3, step: 8 }).noBackspace).toBe(true);
     expect(testRules({ kind: 'lesson', lessonId: 3, step: step((d) => d.stopOnError === true) }).stopOnError).toBe(true);
-    expect(testRules({ kind: 'time', seconds: 30 })).toEqual({ noBackspace: undefined, stopOnError: undefined });
+    expect(testRules({ kind: 'time', seconds: 30 })).toEqual({});
   });
 });

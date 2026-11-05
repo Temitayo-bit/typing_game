@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { drillFor, lessonPlan } from '../data/drills';
-import { keysUpTo, lessonWordPool, lessons, punctuationPool, STEPS_PER_LESSON, type LessonKind } from '../data/lessons';
+import { keysUpTo, lessonWordPool, lessons, punctuationPool, STEPS_PER_LESSON } from '../data/lessons';
 import { commonWords } from '../data/words';
 import { packs } from '../data/packs';
 import { lessonDrill, weakKeyDrill } from './lessonWords';
@@ -49,6 +49,19 @@ describe('lessonDrill', () => {
     const lesson = lessons.find((l) => l.id === 2)!;
     const drill = lessonDrill(lesson, 2, sources, seeded(4));
     expect(drill.every((w) => /[dk]/.test(w) && /[fj]/.test(w))).toBe(true);
+  });
+
+  it('keeps tiny words tiny and makes the checkpoint longer', () => {
+    const lesson = lessons.find((l) => l.id === 9)!;
+    const tiny = lessonPlan('keys').findIndex((d) => d.type === 'tiny-words') + 1;
+    expect(lessonDrill(lesson, tiny, sources, seeded(2)).every((w) => w.length <= 5)).toBe(true);
+    expect(lessonDrill(lesson, STEPS_PER_LESSON, sources, seeded(2))).toHaveLength(25);
+  });
+
+  it('capitalises every word of a title', () => {
+    const lesson = lessons.find((l) => l.kind === 'shift')!;
+    const step = lessonPlan('shift').findIndex((d) => d.type === 'title-case') + 1;
+    expect(lessonDrill(lesson, step, sources, seeded(3)).every((w) => /^[A-Z]/.test(w))).toBe(true);
   });
 
   it('says each word three times in the echo practice', () => {
@@ -105,6 +118,8 @@ describe('lessonDrill', () => {
     const step = lessonPlan('sentences').findIndex((d) => d.type === 'weak-keys') + 1;
     const drill = lessonDrill(lesson, step, { ...sources, weakKeys: ['z'] }, seeded(6));
     expect(drill.every((w) => w.includes('z'))).toBe(true);
+    // A missed capital is drilled as its lowercase letter.
+    expect(lessonDrill(lesson, step, { ...sources, weakKeys: ['Q'] }, seeded(6)).every((w) => w.includes('q'))).toBe(true);
   });
 
   it("prefers a lesson's own words and passages", () => {
@@ -123,7 +138,7 @@ describe('lessonDrill', () => {
 });
 
 describe('lesson plans', () => {
-  const kinds = [...new Set(lessons.map((l) => l.kind)), 'patterns', 'symbols', 'speed', 'reading'] as LessonKind[];
+  const kinds = [...new Set(lessons.map((l) => l.kind)), 'patterns', 'symbols', 'speed', 'reading'] as const;
 
   it('gives every lesson kind eight different practices', () => {
     for (const kind of kinds) {
@@ -144,8 +159,22 @@ describe('lesson plans', () => {
     }
   });
 
-  it('falls back to the letters plan for a kind it does not know', () => {
-    expect(lessonPlan('mystery' as LessonKind)).toBe(lessonPlan('keys'));
+  it('builds all eight practices for the kinds still to come, from their own content', () => {
+    const base = lessons.at(-1)!;
+    const extra = {
+      words: ['then', 'there', 'thing', 'ring', 'sing', 'other', 'mother', 'think'],
+      passages: ['the thing about this is that nothing is the same, and that is the best thing of all'],
+      focus: ['th', 'ing'],
+    };
+    for (const kind of ['patterns', 'symbols', 'speed', 'reading']) {
+      const lesson = { ...base, ...extra, kind, newKeys: kind === 'symbols' ? ['?', "'"] : [] } as unknown as typeof base;
+      const chars = typeableAt(base.id);
+      for (let step = 1; step <= STEPS_PER_LESSON; step++) {
+        const drill = lessonDrill(lesson, step, sources, seeded(step));
+        expect(drill.length, `${kind} step ${step}`).toBeGreaterThanOrEqual(15);
+        for (const c of drill.join(' ')) expect(chars.has(c), `${c} in ${kind} step ${step}`).toBe(true);
+      }
+    }
   });
 
   it('rejects a step outside the lesson', () => {
@@ -176,5 +205,12 @@ describe('lesson plan', () => {
 
   it('numbers lessons 1 to 20 in order', () => {
     expect(lessons.map((l) => l.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+  });
+});
+
+describe('weakKeyDrill with punctuation', () => {
+  it('adds a missed punctuation key onto words', () => {
+    const drill = weakKeyDrill(['tea', 'rice', 'soup', 'naan', 'cake'], ['?'], 10, seeded(9));
+    expect(drill.every((w) => w.endsWith('?'))).toBe(true);
   });
 });

@@ -67,7 +67,9 @@ export function lessonDrill(s: Selection): Drill | undefined {
 
 export function testRules(s: Selection): Rules {
   const drill = lessonDrill(s);
-  return { noBackspace: drill?.noBackspace, stopOnError: drill?.stopOnError };
+  if (!drill) return {};
+  const { noBackspace, stopOnError } = drill;
+  return { noBackspace, stopOnError };
 }
 
 /** Practice results that count towards speed records (lessons and drills are excluded). */

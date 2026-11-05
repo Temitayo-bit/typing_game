@@ -69,7 +69,9 @@ function char(state: TestState, c: string, t: number): TestState {
   const current = state.typed[state.wordIndex] ?? '';
   const expected = target[current.length] ?? null;
   if (state.rules.stopOnError && c !== expected) {
-    return { ...state, status: 'running', keystrokes: [...state.keystrokes, { t, expected, typed: c, correct: false }] };
+    // At the end of a word the right key is space.
+    const want = expected ?? ' ';
+    return { ...state, status: 'running', keystrokes: [...state.keystrokes, { t, expected: want, typed: c, correct: false }] };
   }
   const typed = withWord(state.typed, state.wordIndex, current + c);
   const next: TestState = {

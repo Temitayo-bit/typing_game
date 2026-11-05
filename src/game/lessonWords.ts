@@ -10,8 +10,11 @@ export type DrillSources = {
   weakKeys?: readonly string[];
 };
 
-/** Lesson-specific content a lesson may carry on top of the shared pools. */
-type LessonContent = { words?: readonly string[]; passages?: readonly string[]; focus?: readonly string[] };
+/** Lesson-specific word lists, patterns or passages a lesson may carry on top of the shared pools. */
+function lessonList(lesson: Lesson, field: 'words' | 'passages' | 'focus'): string[] {
+  const value: unknown = (lesson as Partial<Record<string, unknown>>)[field];
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+}
 
 const RIGHT_HAND = new Set('yuiophjklnm');
 
@@ -22,6 +25,8 @@ type Ctx = {
   typeable: (s: string) => boolean;
   /** Every learned key, letters and symbols. */
   allowed: string[];
+  /** The lesson's own word list, filtered to what she can type. */
+  ownWords: string[];
   /** What this lesson is about: its new keys, or every learned key when it has none. */
   focus: string[];
   digits: string[];
@@ -46,16 +51,16 @@ function context(lesson: Lesson, step: number, sources: DrillSources, random: Ra
   if (capitals) for (const k of keys) if (/[a-z]/.test(k)) chars.add(k.toUpperCase());
   const typeable = (s: string) => s.length > 0 && [...s].every((c) => chars.has(c));
 
-  const own = lesson as Lesson & LessonContent;
-  const curated = unique((own.words ?? []).filter(typeable));
+  const curated = unique(lessonList(lesson, 'words').filter(typeable));
   const words = curated.length >= 8 ? curated : unique([...curated, ...sources.words.filter(typeable)]);
   const allowed = [...keys];
-  const chunks = (own.focus ?? []).filter(typeable);
+  const chunks = lessonList(lesson, 'focus').filter(typeable);
   const focus = chunks.length > 0 ? chunks : lesson.newKeys.filter((k) => keys.has(k));
   const focusKeys = focus.length > 0 ? focus : allowed.filter((k) => /[a-z]/.test(k));
-  const ownPassages = (own.passages ?? []).filter(typeable);
+  const ownPassages = lessonList(lesson, 'passages').filter(typeable);
   return {
     lesson,
+    ownWords: curated,
     count: step === STEPS_PER_LESSON ? STEP_WORDS + 5 : STEP_WORDS,
     random,
     typeable,
@@ -65,7 +70,8 @@ function context(lesson: Lesson, step: number, sources: DrillSources, random: Ra
     words,
     focusWords: focus.length > 0 ? words.filter((w) => focus.some((k) => w.includes(k))) : words,
     passages: ownPassages.length > 0 ? ownPassages : sources.passages.filter(typeable),
-    weakKeys: (sources.weakKeys ?? []).filter((k) => k.length === 1 && k !== ' ' && chars.has(k)),
+    // Word pools are lowercase, so a missed capital is drilled as its letter.
+    weakKeys: unique((sources.weakKeys ?? []).filter((k) => k.length === 1 && k !== ' ' && chars.has(k)).map((k) => k.toLowerCase())),
   };
 }
 
@@ -103,10 +109,8 @@ function build(type: DrillType, c: Ctx): string[] {
     }
     case 'mixed-words':
       return mixedWords(c);
-    case 'lesson-words': {
-      const own = ((c.lesson as Lesson & LessonContent).words ?? []).filter(c.typeable);
-      return own.length >= 4 ? pickWords(own, c.count, c.random) : mixedWords(c);
-    }
+    case 'lesson-words':
+      return c.ownWords.length >= 4 ? pickWords(c.ownWords, c.count, c.random) : mixedWords(c);
     case 'left-caps':
     case 'right-caps': {
       const rightHand = type === 'left-caps';
@@ -269,7 +273,11 @@ function unique(xs: readonly string[]): string[] {
 export function weakKeyDrill(words: readonly string[], keys: readonly string[], count: number, random: Random = Math.random): string[] {
   const letters = keys.filter((k) => k.length === 1 && k !== ' ');
   const matching = unique(words.filter((w) => letters.some((k) => w.includes(k))));
-  const pool = matching.length >= 4 ? matching : unique(words);
+  // Few words hold symbols or punctuation, so those keys get tacked onto words instead.
+  const marks = letters.filter((k) => !/[a-z0-9]/i.test(k) && !matching.some((w) => w.includes(k)));
+  const base = unique(words);
+  const marked = base.length > 0 ? marks.flatMap((k) => base.slice(0, 12).map((w) => w + k)) : [];
+  const pool = matching.length + marked.length >= 4 ? [...matching, ...marked] : base;
   if (pool.length === 0) throw new Error('No words to build a drill from');
   return Array.from({ length: count }, () => pool[Math.floor(random() * pool.length)]!);
 }

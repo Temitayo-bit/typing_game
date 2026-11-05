@@ -1,3 +1,4 @@
+import type { Rules } from '../game/engine';
 import { STEPS_PER_LESSON, type Lesson, type LessonKind } from './lessons';
 
 /** The kind of exercise a practice uses. Each one is built by its own generator in lessonWords.ts. */
@@ -31,16 +32,12 @@ export type DrillType =
   | 'long-story' // two passages back to back
   | 'symbol-words'; // the lesson's new symbols mixed into words
 
-export type Drill = {
+export type Drill = Rules & {
   type: DrillType;
   title: string;
   blurb: string;
   /** Runs against the clock instead of to the end of the text. */
   seconds?: number;
-  /** Backspace is switched off, so she keeps going after a slip. */
-  noBackspace?: boolean;
-  /** A wrong key doesn't move the cursor; she has to find the right one. */
-  stopOnError?: boolean;
   /** Hides the on-screen keyboard so she stops looking down. */
   hideKeyboard?: boolean;
 };
@@ -60,7 +57,10 @@ const checkpoint = (type: DrillType, blurb: string): Drill =>
  * Eight different exercises per lesson, ordered the way good trainers do it:
  * meet the keys, drill them, put them in words, take the keyboard away, a timed run, then a checkpoint.
  */
-const plans: Record<string, readonly Drill[]> = {
+/** Kinds planned ahead for the lessons being added alongside this change. */
+type PlanKind = LessonKind | 'patterns' | 'symbols' | 'speed' | 'reading';
+
+const plans: Record<PlanKind, readonly Drill[]> = {
   keys: [
     d('meet', 'Meet the new keys', 'Each new key a few times on its own. Say the letter in your head as you press it.'),
     d('pairs', 'Back and forth', 'New keys rolled against the ones you already know. Your fingers jump out and come straight home.'),
@@ -153,9 +153,8 @@ const plans: Record<string, readonly Drill[]> = {
   ],
 };
 
-/** Plan for a lesson kind; kinds without their own plan get the general letters plan. */
-export function lessonPlan(kind: LessonKind): readonly Drill[] {
-  return plans[kind] ?? plans.keys!;
+export function lessonPlan(kind: PlanKind): readonly Drill[] {
+  return plans[kind];
 }
 
 export function drillFor(lesson: Pick<Lesson, 'kind'>, step: number): Drill {
