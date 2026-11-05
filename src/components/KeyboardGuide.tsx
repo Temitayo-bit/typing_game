@@ -24,7 +24,7 @@ export function KeyboardGuide({ nextChar, unlocked, fresh = [], resting = false 
         }`
       : '';
   return (
-    <div className="hidden select-none flex-col items-center gap-1.5 rounded-[20px] bg-cream p-4 sm:flex" aria-hidden="true">
+    <div className="hidden select-none flex-col items-center gap-1.5 overflow-hidden rounded-[20px] bg-cream p-4 sm:flex" aria-hidden="true">
       <p className="mb-1 h-5 text-sm text-muted">{hint}</p>
       {/* Bottom padding leaves room for the palms below the keys. */}
       <div className="relative flex flex-col items-center gap-1.5 pb-24">

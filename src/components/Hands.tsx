@@ -10,6 +10,7 @@ const digits: Digit[] = ['pinky', 'ring', 'middle', 'index'];
 const knuckleDrop: Record<Digit, number> = { pinky: 92, ring: 110, middle: 118, index: 110 };
 // Fingertips rest on the lower half of a key so its letter stays readable.
 const TIP_OFFSET = 21;
+const SHIFT_REACH = 26;
 
 type Props = {
   /** Fingers pressing for the next character: the key's finger first, then a shift pinky. */
@@ -66,17 +67,25 @@ function Hand({ side, centers, active, target }: HandProps) {
   const homeY = rests[0]!.y;
   const inward = side === 'left' ? 1 : -1;
 
+  // Fingers keep their length; the whole hand slides so the pressing finger lands on its key.
+  let shift = { x: 0, y: 0 };
+  digits.forEach((d, i) => {
+    const finger: Finger = `${side} ${d}`;
+    const key = active[0] === finger ? target : active[1] === finger ? `shift-${side}` : undefined;
+    const to = key === undefined ? undefined : centers.get(key);
+    // Shift is two rows down, so the pinky only reaches its top edge rather than dragging the hand that far.
+    const lift = key?.startsWith('shift-') ? SHIFT_REACH : 0;
+    if (to) shift = { x: to.x - rests[i]!.x, y: to.y - rests[i]!.y - lift };
+  });
+
   const fingers = digits.map((d, i) => {
     const finger: Finger = `${side} ${d}`;
     const rest = rests[i]!;
-    let tip = rest;
-    if (active[0] === finger && target) tip = centers.get(target) ?? rest;
-    else if (active[1] === finger) tip = centers.get(`shift-${side}`) ?? rest;
     return {
       finger,
       on: active.includes(finger),
       knuckle: { x: cx + (rest.x - cx) * 0.78, y: rest.y + knuckleDrop[d] },
-      tip: { x: tip.x, y: tip.y + TIP_OFFSET },
+      tip: { x: rest.x, y: rest.y + TIP_OFFSET },
     };
   });
   const thumb = {
@@ -103,7 +112,7 @@ function Hand({ side, centers, active, target }: HandProps) {
   const heart = { x: (pinky.x + index.x) / 2, y: homeY + 150 };
 
   return (
-    <g>
+    <g style={{ transform: `translate(${shift.x}px, ${shift.y}px)`, transition: 'transform 140ms ease-out' }}>
       {/* One layer at one opacity, so overlapping parts don't show darker seams. */}
       <g opacity={0.6}>
         {all.map((f) => (
