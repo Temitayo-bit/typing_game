@@ -19,8 +19,7 @@ export function switchSettings(userId: string | null, changed: ((s: Settings) =>
 export function applySettings(next: Settings): void {
   settings = next;
   storeSettings(settings, settingsUser);
-  if (settings.music) startMusic();
-  else stopMusic();
+  syncMusic();
   listeners.forEach((l) => l());
 }
 let ctx: AudioContext | null = null;
@@ -42,8 +41,7 @@ function updateSettings(next: Partial<Settings>): void {
   settings = { ...settings, ...next };
   storeSettings(settings, settingsUser);
   onChange?.(settings);
-  if (settings.music) startMusic();
-  else stopMusic();
+  syncMusic();
   listeners.forEach((l) => l());
 }
 
@@ -91,6 +89,27 @@ export function playFinish(celebrate: boolean): void {
 // A slow music-box loop on a pentatonic scale: calm, and never clashes with itself.
 const scale = [392, 440, 523.25, 587.33, 659.25, 783.99];
 
+// Music belongs to typing: it plays only while a test is on screen and the tab is visible.
+let testsOnScreen = 0;
+
+function syncMusic(): void {
+  const visible = typeof document === 'undefined' || document.visibilityState !== 'hidden';
+  if (settings.music && testsOnScreen > 0 && visible) startMusic();
+  else stopMusic();
+}
+
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', syncMusic);
+
+/** Call from a mounted test view; returns the cleanup for when it leaves the screen. */
+export function musicOnScreen(): () => void {
+  testsOnScreen++;
+  syncMusic();
+  return () => {
+    testsOnScreen--;
+    syncMusic();
+  };
+}
+
 function startMusic(): void {
   if (musicTimer !== null || !audio()) return;
   let step = 0;
@@ -114,7 +133,7 @@ function stopMusic(): void {
 /** Browsers only allow audio after a user gesture, so music resumes on the first key or click. */
 export function resumeMusicOnGesture(): () => void {
   const start = () => {
-    if (settings.music) startMusic();
+    syncMusic();
   };
   window.addEventListener('keydown', start, { once: true });
   window.addEventListener('pointerdown', start, { once: true });

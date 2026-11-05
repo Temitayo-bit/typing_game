@@ -3,7 +3,7 @@ import type { Mode, TestState } from '../game/engine';
 import type { Result } from '../game/stats';
 import { correctChars, wordsPerMinute } from '../game/stats';
 import { useTypingTest } from '../game/useTypingTest';
-import { playFinish, playKey } from '../lib/sound';
+import { musicOnScreen, playFinish, playKey } from '../lib/sound';
 import { KeyboardGuide } from './KeyboardGuide';
 import { ResultCard, type LessonOutcome } from './ResultCard';
 import { SoundToggle } from './SoundToggle';
@@ -41,6 +41,8 @@ export function TestView(props: Props) {
       onFinish(result);
     }
   }, [result, onFinish, lessonOutcome, previousBest]);
+
+  useEffect(musicOnScreen, []);
 
   const last = test.keystrokes.at(-1);
   useEffect(() => {
