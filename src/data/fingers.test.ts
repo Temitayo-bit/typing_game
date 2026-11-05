@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fingerFor, keyFor, shiftHand } from './fingers';
+import { fingerFor, fingersFor, homeKey, keyFor, shiftHand } from './fingers';
 
 describe('fingers', () => {
   it('maps keys to fingers', () => {
@@ -18,5 +18,17 @@ describe('fingers', () => {
   it('uses the opposite hand for shift', () => {
     expect(shiftHand('a')).toBe('right');
     expect(shiftHand('k')).toBe('left');
+  });
+
+  it('lists the fingers pressing for a character, shift pinky included', () => {
+    expect(fingersFor('f')).toEqual(['left index']);
+    expect(fingersFor('F')).toEqual(['left index', 'right pinky']);
+    expect(fingersFor('?')).toEqual(['right pinky', 'left pinky']);
+    expect(fingersFor(' ')).toEqual(['thumb']);
+    expect(fingersFor('§')).toEqual([]);
+  });
+
+  it('rests every finger on a key that finger types', () => {
+    for (const [finger, key] of Object.entries(homeKey)) expect(fingerFor(key)).toBe(finger);
   });
 });

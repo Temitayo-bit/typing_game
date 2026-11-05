@@ -104,7 +104,7 @@ export function TestView(props: Props) {
         )}
         {capsLock && <p className="mt-2 font-bold text-error">caps lock is on</p>}
       </div>
-      {guide && <KeyboardGuide nextChar={nextChar(test)} unlocked={guide.unlocked} fresh={guide.fresh} />}
+      {guide && <KeyboardGuide nextChar={nextChar(test)} unlocked={guide.unlocked} fresh={guide.fresh} resting={test.status === 'ready'} />}
       <p className="text-center text-sm text-muted">
         <Kbd>esc</Kbd> to restart
       </p>
