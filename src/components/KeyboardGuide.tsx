@@ -1,0 +1,56 @@
+import { fingerColor, fingerFor, keyboardRows, keyFor, shiftHand } from '../data/fingers';
+
+type Props = { nextChar: string | undefined; unlocked?: ReadonlySet<string>; fresh?: readonly string[] };
+
+export function KeyboardGuide({ nextChar, unlocked, fresh = [] }: Props) {
+  const next = nextChar === undefined ? undefined : keyFor(nextChar);
+  const finger = next ? fingerFor(next.key) : undefined;
+  const hint =
+    next && finger
+      ? `${next.key === ' ' ? 'space' : nextChar}: ${finger === 'thumb' ? 'either thumb' : `${finger} finger`}${
+          next.shift ? ` + ${shiftHand(next.key)} pinky on shift` : ''
+        }`
+      : '';
+  return (
+    <div className="hidden select-none flex-col items-center gap-1.5 rounded-[20px] bg-cream p-4 sm:flex" aria-hidden="true">
+      <p className="mb-1 h-5 text-sm text-muted">{hint}</p>
+      {keyboardRows.map((row, r) => (
+        <div key={row} className="flex gap-1.5" style={{ paddingLeft: `${[0, 20, 32, 52][r]}px` }}>
+          {[...row].map((k) => (
+            <Key
+              key={k}
+              label={k}
+              active={next?.key === k}
+              fresh={fresh.includes(k)}
+              locked={unlocked !== undefined && !unlocked.has(k)}
+            />
+          ))}
+        </div>
+      ))}
+      <div className="mt-1 flex gap-1.5">
+        <Key label="shift" wide active={next?.shift === true && shiftHand(next.key) === 'left'} fresh={false} locked={false} />
+        <Key label=" " space active={next?.key === ' '} fresh={false} locked={false} />
+        <Key label="shift" wide active={next?.shift === true && shiftHand(next.key) === 'right'} fresh={false} locked={false} />
+      </div>
+    </div>
+  );
+}
+
+type KeyProps = { label: string; active: boolean; fresh: boolean; locked: boolean; wide?: boolean; space?: boolean };
+
+function Key({ label, active, fresh, locked, wide, space }: KeyProps) {
+  const finger = fingerFor(label);
+  const background = active ? 'var(--color-accent)' : locked ? '#FFFFFF' : fresh ? 'var(--color-blush)' : finger ? fingerColor[finger] : '#FFF0F5';
+  const color = active ? '#FFFFFF' : locked ? '#E4B5C7' : '#3D1C2C';
+  return (
+    <div
+      className={`relative flex h-11 items-center justify-center rounded-[10px] font-mono text-sm transition ${
+        space ? 'w-72' : wide ? 'w-20' : 'w-11'
+      }`}
+      style={{ background, color, boxShadow: active ? '0 0 0 4px var(--color-blush)' : 'none' }}
+    >
+      {label === ' ' ? 'space' : label}
+      {(label === 'f' || label === 'j') && <span className="absolute bottom-1.5 h-0.5 w-3 rounded bg-current opacity-50" />}
+    </div>
+  );
+}
