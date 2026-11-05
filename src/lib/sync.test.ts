@@ -16,6 +16,7 @@ describe('sync', () => {
   it('round-trips a result through a database row', () => {
     expect(fromRows([toRow(r())])).toEqual([r()]);
     expect(fromRows([toRow(r({ textKeys: ['abc12', 'z9'] }))])).toEqual([r({ textKeys: ['abc12', 'z9'] })]);
+    expect(fromRows([toRow(r({ keyPresses: { e: 12 } }))])).toEqual([r({ keyPresses: { e: 12 } })]);
   });
 
   it('drops passage ids that are not short ids', () => {

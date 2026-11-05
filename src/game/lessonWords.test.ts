@@ -137,8 +137,8 @@ describe('lessonDrill', () => {
     const step = lessonPlan('sentences').findIndex((d) => d.type === 'weak-keys') + 1;
     const drill = lessonDrill(lesson, step, { ...sources, weakKeys: ['z'] }, seeded(6));
     expect(drill.every((w) => w.includes('z'))).toBe(true);
-    // A missed capital is drilled as its lowercase letter.
-    expect(lessonDrill(lesson, step, { ...sources, weakKeys: ['Q'] }, seeded(6)).every((w) => w.includes('q'))).toBe(true);
+    // Once shift is learned, a missed capital is drilled as capitalised words.
+    expect(lessonDrill(lesson, step, { ...sources, weakKeys: ['Q'] }, seeded(6)).every((w) => w.startsWith('Q'))).toBe(true);
   });
 
   it("prefers a lesson's own words and passages", () => {
@@ -207,6 +207,26 @@ describe('weakKeyDrill', () => {
   it('prefers words containing the missed keys', () => {
     const drill = weakKeyDrill(['apple', 'zoo', 'pear', 'plum', 'pip', 'kiwi'], ['p'], 10, seeded(4));
     expect(drill.every((w) => w.includes('p'))).toBe(true);
+  });
+
+  it('gives the worst key the biggest share', () => {
+    const words = ['ra', 'rb', 'rc', 'rd', 'ta', 'tb', 'tc', 'td'];
+    const drill = weakKeyDrill(words, ['r', 't'], 600, seeded(11));
+    const r = drill.filter((w) => w.startsWith('r')).length;
+    // Weights are 2:1, so about 400 of 600.
+    expect(r).toBeGreaterThan(340);
+    expect(r).toBeLessThan(460);
+  });
+
+  it('picks words holding the key more often', () => {
+    const drill = weakKeyDrill(['pop', 'pip', 'pup', 'apple', 'pa', 'pe', 'po', 'pu'], ['p'], 800, seeded(12));
+    const count = (w: string) => drill.filter((d) => d === w).length;
+    expect(count('pop')).toBeGreaterThan(count('pa') * 1.4);
+  });
+
+  it('drills a missed capital with capitalised words', () => {
+    const drill = weakKeyDrill(['rice', 'ramen', 'rose', 'run', 'tea', 'cake'], ['R'], 20, seeded(13));
+    expect(drill.every((w) => w.startsWith('R'))).toBe(true);
   });
 
   it('falls back to any word when too few match', () => {

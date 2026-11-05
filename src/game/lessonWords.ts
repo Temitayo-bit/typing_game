@@ -75,8 +75,8 @@ function context(lesson: Lesson, step: number, sources: DrillSources, random: Ra
     words,
     focusWords: focus.length > 0 ? words.filter((w) => focus.some((k) => w.includes(k))) : words,
     passages: unseen(ownPassages.length > 0 ? ownPassages : sources.passages.map(tidy).filter(typeable), sources.seen ?? new Set()),
-    // Word pools are lowercase, so a missed capital is drilled as its letter.
-    weakKeys: unique((sources.weakKeys ?? []).filter((k) => k.length === 1 && k !== ' ' && chars.has(k)).map((k) => k.toLowerCase())),
+    // A capital only gets through once shift is learned (chars has it); weakKeyDrill capitalises words for it.
+    weakKeys: unique((sources.weakKeys ?? []).filter((k) => k.length === 1 && k !== ' ' && chars.has(k))),
   };
 }
 
@@ -302,15 +302,47 @@ function unique(xs: readonly string[]): string[] {
   return [...new Set(xs)];
 }
 
-/** Words that lean on the keys she misses most, for a quick targeted drill. */
+/**
+ * Words that lean on the keys she misses most. `keys` is worst first: the worst key gets the
+ * biggest share, and words holding a key more than once are picked more often.
+ */
 export function weakKeyDrill(words: readonly string[], keys: readonly string[], count: number, random: Random = Math.random): string[] {
-  const letters = keys.filter((k) => k.length === 1 && k !== ' ');
-  const matching = unique(words.filter((w) => letters.some((k) => w.includes(k))));
-  // Few words hold symbols or punctuation, so those keys get tacked onto words instead.
-  const marks = letters.filter((k) => !/[a-z0-9]/i.test(k) && !matching.some((w) => w.includes(k)));
   const base = unique(words);
-  const marked = base.length > 0 ? marks.flatMap((k) => base.slice(0, 12).map((w) => w + k)) : [];
-  const pool = matching.length + marked.length >= 4 ? [...matching, ...marked] : base;
-  if (pool.length === 0) throw new Error('No words to build a drill from');
-  return Array.from({ length: count }, () => pool[Math.floor(random() * pool.length)]!);
+  if (base.length === 0) throw new Error('No words to build a drill from');
+  const pools = unique(keys.filter((k) => k.length === 1 && k !== ' '))
+    .map((k) => drillWords(base, k))
+    .filter((p) => p.length > 0);
+  if (unique(pools.flat().map((w) => w.word)).length < 4) {
+    return Array.from({ length: count }, () => base[Math.floor(random() * base.length)]!);
+  }
+  const keyWeights = pools.map((_, i) => pools.length - i);
+  return Array.from({ length: count }, () => {
+    const pool = pools[weightedIndex(keyWeights, random)]!;
+    return pool[weightedIndex(pool.map((w) => w.hits), random)]!.word;
+  });
+}
+
+type DrillWord = { word: string; hits: number };
+
+function drillWords(base: readonly string[], key: string): DrillWord[] {
+  const hits = (w: string, k: string) => [...w].filter((c) => c === k).length;
+  const lower = key.toLowerCase();
+  // Word pools are lowercase, so a missed capital is practised by capitalising words that start with it.
+  if (key !== lower) {
+    return base.filter((w) => w.startsWith(lower)).map((w) => ({ word: key + w.slice(1), hits: 1 }));
+  }
+  const containing = base.filter((w) => w.includes(key)).map((w) => ({ word: w, hits: hits(w, key) }));
+  if (containing.length > 0 || /[a-z0-9]/.test(key)) return containing;
+  // Few words hold symbols or punctuation, so those keys get tacked onto words instead.
+  return base.slice(0, 12).map((w) => ({ word: w + key, hits: 1 }));
+}
+
+function weightedIndex(weights: readonly number[], random: Random): number {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = random() * total;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i]!;
+    if (r < 0) return i;
+  }
+  return weights.length - 1;
 }

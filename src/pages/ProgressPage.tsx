@@ -1,10 +1,11 @@
 import { LineChart } from '../components/LineChart';
 import { Button, Card } from '../components/ui';
 import { keyLabel } from '../lib/format';
+import { missRate, weakKeys } from '../lib/weakKeys';
 import { exportResults, importResults, type SavedResult } from '../lib/history';
 import { reachedMilestones } from '../lib/milestones';
 import { isSpeedTest, type Selection } from '../lib/modes';
-import { activityByDay, dayStreak, longestStreak, personalBest, topMissedKeys } from '../lib/progress';
+import { activityByDay, dayStreak, longestStreak, personalBest } from '../lib/progress';
 import { useRef, useState } from 'react';
 
 type Props = { results: SavedResult[]; practise: (s: Selection) => void; onImported: () => void };
@@ -22,7 +23,7 @@ export function ProgressPage({ results, practise, onImported }: Props) {
   });
   const avgAccuracy = speed.length ? Math.round(speed.reduce((s, r) => s + r.accuracy, 0) / speed.length) : undefined;
   const minutes = Math.round(results.reduce((s, r) => s + r.durationMs, 0) / 60_000);
-  const weak = topMissedKeys(results.slice(0, 40), 5);
+  const weak = weakKeys(results, 5);
   const days = activityByDay(results, 70);
   const milestones = reachedMilestones(results);
 
@@ -68,14 +69,21 @@ export function ProgressPage({ results, practise, onImported }: Props) {
       <Card className="flex flex-wrap items-center gap-4">
         <span className="mr-2 font-bold">Weakest keys lately</span>
         {weak.length === 0 && <span className="text-muted">nothing yet, keep typing</span>}
-        {weak.map(([k, n]) => (
-          <span key={k} className="rounded-xl bg-petal px-3.5 py-2 font-mono">
-            {keyLabel(k)} ×{n}
-          </span>
-        ))}
+        {weak.map((w) => {
+          const rate = missRate(w);
+          return (
+            <span
+              key={w.key}
+              className="rounded-xl bg-petal px-3.5 py-2 font-mono"
+              title={w.presses ? `missed ${w.misses} of ${w.presses} times in your last tests` : undefined}
+            >
+              {keyLabel(w.key)} {rate === undefined ? `×${w.misses}` : `${Math.round(rate * 100)}%`}
+            </span>
+          );
+        })}
         {weak.length > 0 && (
           <span className="ml-auto">
-            <Button onClick={() => practise({ kind: 'weak', keys: weak.map(([k]) => k) })}>Drill these</Button>
+            <Button onClick={() => practise({ kind: 'weak', keys: weak.map((w) => w.key) })}>Drill these</Button>
           </span>
         )}
       </Card>

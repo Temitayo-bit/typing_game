@@ -10,6 +10,8 @@ export type Result = {
   durationMs: number;
   /** Mistyped count per expected character, e.g. { e: 3, ' ': 1 } */
   missedKeys: Record<string, number>;
+  /** Every press per expected character, right or wrong, so misses can be read as a rate. Missing on old results. */
+  keyPresses?: Record<string, number>;
   /** Net WPM at the end of each whole second */
   wpmBySecond: number[];
 };
@@ -37,6 +39,7 @@ export function computeResult(state: TestState, durationMs: number): Result {
     typedChars: keystrokes.length,
     durationMs,
     missedKeys: missedKeys(keystrokes),
+    keyPresses: keyPresses(keystrokes),
     wpmBySecond: wpmBySecond(state.netTimeline, durationMs),
   };
 }
@@ -48,6 +51,15 @@ function missedKeys(keystrokes: Keystroke[]): Record<string, number> {
     missed[k.expected] = (missed[k.expected] ?? 0) + 1;
   }
   return missed;
+}
+
+function keyPresses(keystrokes: Keystroke[]): Record<string, number> {
+  const presses: Record<string, number> = {};
+  for (const k of keystrokes) {
+    if (k.expected === null) continue;
+    presses[k.expected] = (presses[k.expected] ?? 0) + 1;
+  }
+  return presses;
 }
 
 function wpmBySecond(timeline: TestState['netTimeline'], durationMs: number): number[] {
