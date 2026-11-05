@@ -26,38 +26,42 @@ export function KeyboardGuide({ nextChar, unlocked, fresh = [], resting = false 
   return (
     <div className="hidden select-none flex-col items-center gap-1.5 rounded-[20px] bg-cream p-4 sm:flex" aria-hidden="true">
       <p className="mb-1 h-5 text-sm text-muted">{hint}</p>
-      {keyboardRows.map((row, r) => (
-        <div key={row} className="flex gap-1.5" style={{ paddingLeft: `${[0, 20, 32, 52][r]}px` }}>
-          {[...row].map((k) => (
-            <Key
-              key={k}
-              label={k}
-              active={next?.key === k}
-              fresh={freshKeys.includes(k)}
-              locked={unlocked !== undefined && !unlocked.has(k)}
-              home={resting && homeKeys.has(k)}
-            />
-          ))}
+      {/* Bottom padding leaves room for the palms below the keys. */}
+      <div className="relative flex flex-col items-center gap-1.5 pb-24">
+        {keyboardRows.map((row, r) => (
+          <div key={row} className="flex gap-1.5" style={{ paddingLeft: `${[0, 20, 32, 52][r]}px` }}>
+            {[...row].map((k) => (
+              <Key
+                key={k}
+                label={k}
+                active={next?.key === k}
+                fresh={freshKeys.includes(k)}
+                locked={unlocked !== undefined && !unlocked.has(k)}
+                home={resting && homeKeys.has(k)}
+              />
+            ))}
+          </div>
+        ))}
+        <div className="mt-1 flex gap-1.5">
+          <Key label="shift" id="shift-left" wide active={next?.shift === true && shiftHand(next.key) === 'left'} fresh={false} locked={false} />
+          <Key label=" " space active={next?.key === ' '} fresh={false} locked={false} />
+          <Key label="shift" id="shift-right" wide active={next?.shift === true && shiftHand(next.key) === 'right'} fresh={false} locked={false} />
         </div>
-      ))}
-      <div className="mt-1 flex gap-1.5">
-        <Key label="shift" wide active={next?.shift === true && shiftHand(next.key) === 'left'} fresh={false} locked={false} />
-        <Key label=" " space active={next?.key === ' '} fresh={false} locked={false} />
-        <Key label="shift" wide active={next?.shift === true && shiftHand(next.key) === 'right'} fresh={false} locked={false} />
+        <Hands active={resting || nextChar === undefined ? [] : fingersFor(nextChar)} target={next?.key} />
       </div>
-      <Hands active={resting || nextChar === undefined ? [] : fingersFor(nextChar)} reach={next?.key === ' ' ? undefined : next?.key} />
     </div>
   );
 }
 
-type KeyProps = { label: string; active: boolean; fresh: boolean; locked: boolean; home?: boolean; wide?: boolean; space?: boolean };
+type KeyProps = { label: string; id?: string; active: boolean; fresh: boolean; locked: boolean; home?: boolean; wide?: boolean; space?: boolean };
 
-function Key({ label, active, fresh, locked, home, wide, space }: KeyProps) {
+function Key({ label, id, active, fresh, locked, home, wide, space }: KeyProps) {
   const finger = fingerFor(label);
   const background = active ? 'var(--color-accent)' : locked ? '#FFFFFF' : fresh ? 'var(--color-blush)' : finger ? fingerColor[finger] : '#FFF0F5';
   const color = active ? '#FFFFFF' : locked ? '#E4B5C7' : '#3D1C2C';
   return (
     <div
+      data-key={id ?? label}
       className={`relative flex h-11 items-center justify-center rounded-[10px] font-mono text-sm transition ${
         space ? 'w-72' : wide ? 'w-20' : 'w-11'
       }`}
