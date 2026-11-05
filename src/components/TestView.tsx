@@ -17,7 +17,8 @@ type Props = {
   modeLabel: string;
   makeWords: (count: number) => string[];
   previousBest: number | undefined;
-  onFinish: (result: Result) => void;
+  /** `typed` is the text of every word she reached. */
+  onFinish: (result: Result, typed: string[]) => void;
   /** Shows the on-screen keyboard; lessons also dim keys not learned yet. */
   guide?: { unlocked?: ReadonlySet<string>; fresh?: readonly string[] };
   lessonOutcome?: (result: Result) => LessonOutcome;
@@ -40,9 +41,9 @@ export function TestView(props: Props) {
       const lesson = lessonOutcome?.(result);
       setOutcome(lesson);
       playFinish(lesson ? lesson.passed : previousBest !== undefined && result.wpm > previousBest);
-      onFinish(result);
+      onFinish(result, test.targets.slice(0, test.typed.length));
     }
-  }, [result, onFinish, lessonOutcome, previousBest]);
+  }, [result, onFinish, lessonOutcome, previousBest, test.targets, test.typed.length]);
 
   useEffect(musicOnScreen, []);
 

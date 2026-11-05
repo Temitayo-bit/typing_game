@@ -15,6 +15,12 @@ describe('sync', () => {
 
   it('round-trips a result through a database row', () => {
     expect(fromRows([toRow(r())])).toEqual([r()]);
+    expect(fromRows([toRow(r({ textKeys: ['abc12', 'z9'] }))])).toEqual([r({ textKeys: ['abc12', 'z9'] })]);
+  });
+
+  it('drops passage ids that are not short ids', () => {
+    const row = { ...toRow(r()), text_keys: ['ok1', '<script>'] };
+    expect(fromRows([row])[0]?.textKeys).toBeUndefined();
   });
 
   it('accepts bigint finish times that arrive as strings', () => {

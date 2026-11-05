@@ -2,7 +2,13 @@ import Dexie, { type EntityTable } from 'dexie';
 import type { Result } from '../game/stats';
 import { isModeKey, type ModeKey } from './modes';
 
-export type SavedResult = Result & { id?: number; mode: ModeKey; finishedAt: number };
+export type SavedResult = Result & {
+  id?: number;
+  mode: ModeKey;
+  finishedAt: number;
+  /** Ids of the passages typed in this test (see lib/seen), so they aren't served again too soon. */
+  textKeys?: string[];
+};
 
 type HistoryDb = Dexie & { results: EntityTable<SavedResult, 'id'> };
 
@@ -97,7 +103,7 @@ export function parseExport(value: unknown): SavedResult[] {
 
 function parseResult(r: unknown): SavedResult | null {
   if (!isRecord(r)) return null;
-  const { wpm, rawWpm, accuracy, correctChars, typedChars, durationMs, missedKeys, wpmBySecond, mode, finishedAt } = r;
+  const { wpm, rawWpm, accuracy, correctChars, typedChars, durationMs, missedKeys, wpmBySecond, mode, finishedAt, textKeys } = r;
   if (!isNumber(wpm) || !isNumber(rawWpm) || !isNumber(accuracy) || !isNumber(correctChars)) return null;
   if (!isNumber(typedChars) || !isNumber(durationMs) || !isNumber(finishedAt)) return null;
   if (!isModeKey(mode) || !isCountMap(missedKeys)) return null;
@@ -113,7 +119,12 @@ function parseResult(r: unknown): SavedResult | null {
     mode,
     missedKeys,
     wpmBySecond,
+    ...(isKeyList(textKeys) && textKeys.length > 0 ? { textKeys } : {}),
   };
+}
+
+function isKeyList(v: unknown): v is string[] {
+  return Array.isArray(v) && v.length <= 50 && v.every((k) => typeof k === 'string' && /^[0-9a-z]{1,8}$/.test(k));
 }
 
 function isNumber(v: unknown): v is number {

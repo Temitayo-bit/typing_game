@@ -14,7 +14,7 @@ type Props = {
   results: SavedResult[];
   unlocked: StepRef;
   go: (r: Route) => void;
-  onFinish: (key: ModeKey, r: Result) => void;
+  onFinish: (key: ModeKey, r: Result, textKeys?: string[]) => void;
 };
 
 export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props) {
@@ -36,9 +36,9 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
 
   // Pin the step so unlocking the next one doesn't swap out the result screen.
   const finish = useCallback(
-    (key: ModeKey, r: Result) => {
+    (key: ModeKey, r: Result, textKeys?: string[]) => {
       setChosen(step);
-      onFinish(key, r);
+      onFinish(key, r, textKeys);
     },
     [step, onFinish, setChosen],
   );

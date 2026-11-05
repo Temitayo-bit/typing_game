@@ -15,7 +15,7 @@ export function missingFrom<T extends Pick<SavedResult, 'finishedAt' | 'mode'>>(
 
 type Row = {
   user_id?: string; mode: string; finished_at: number; wpm: number; raw_wpm: number; accuracy: number; correct_chars: number;
-  typed_chars: number; duration_ms: number; missed_keys: unknown; wpm_by_second: unknown;
+  typed_chars: number; duration_ms: number; missed_keys: unknown; wpm_by_second: unknown; text_keys?: unknown;
 };
 
 export function toRow(r: SavedResult, userId?: string): Row {
@@ -24,7 +24,7 @@ export function toRow(r: SavedResult, userId?: string): Row {
     // Durations come from performance.now() and can be fractional; the columns are integers.
     mode: r.mode, finished_at: Math.round(r.finishedAt), wpm: r.wpm, raw_wpm: r.rawWpm, accuracy: r.accuracy,
     correct_chars: Math.round(r.correctChars), typed_chars: Math.round(r.typedChars), duration_ms: Math.round(r.durationMs),
-    missed_keys: r.missedKeys, wpm_by_second: r.wpmBySecond,
+    missed_keys: r.missedKeys, wpm_by_second: r.wpmBySecond, text_keys: r.textKeys ?? [],
   };
 }
 
@@ -35,12 +35,12 @@ export function fromRows(rows: readonly Row[]): SavedResult[] {
     results: rows.map((w) => ({
       mode: w.mode, finishedAt: Number(w.finished_at), wpm: w.wpm, rawWpm: w.raw_wpm, accuracy: w.accuracy,
       correctChars: w.correct_chars, typedChars: w.typed_chars, durationMs: w.duration_ms,
-      missedKeys: w.missed_keys, wpmBySecond: w.wpm_by_second,
+      missedKeys: w.missed_keys, wpmBySecond: w.wpm_by_second, textKeys: w.text_keys,
     })),
   });
 }
 
-const COLUMNS = 'mode, finished_at, wpm, raw_wpm, accuracy, correct_chars, typed_chars, duration_ms, missed_keys, wpm_by_second';
+const COLUMNS = 'mode, finished_at, wpm, raw_wpm, accuracy, correct_chars, typed_chars, duration_ms, missed_keys, wpm_by_second, text_keys';
 
 // The user id is sent explicitly so a session that changed mid-sync is rejected by RLS
 // instead of filing one account's results under another.

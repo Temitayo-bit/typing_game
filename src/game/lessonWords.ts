@@ -1,6 +1,7 @@
 import { drillFor, type DrillType } from '../data/drills';
 import * as text from '../data/drillText';
 import { keysUpTo, lessons, punctuationPool, STEP_WORDS, STEPS_PER_LESSON, type Lesson } from '../data/lessons';
+import { unseen } from '../lib/seen';
 import { pickWords, splitText, type Random } from './words';
 
 export type DrillSources = {
@@ -8,6 +9,8 @@ export type DrillSources = {
   passages: readonly string[];
   /** Keys she has missed most often, worst first. */
   weakKeys?: readonly string[];
+  /** Ids of passages already typed; those wait until every other passage has had a turn. */
+  seen?: ReadonlySet<string>;
 };
 
 /** Lesson-specific word lists, patterns or passages a lesson may carry on top of the shared pools. */
@@ -71,7 +74,7 @@ function context(lesson: Lesson, step: number, sources: DrillSources, random: Ra
     digits: allowed.filter((k) => /[0-9]/.test(k)),
     words,
     focusWords: focus.length > 0 ? words.filter((w) => focus.some((k) => w.includes(k))) : words,
-    passages: ownPassages.length > 0 ? ownPassages : sources.passages.map(tidy).filter(typeable),
+    passages: unseen(ownPassages.length > 0 ? ownPassages : sources.passages.map(tidy).filter(typeable), sources.seen ?? new Set()),
     // Word pools are lowercase, so a missed capital is drilled as its letter.
     weakKeys: unique((sources.weakKeys ?? []).filter((k) => k.length === 1 && k !== ' ' && chars.has(k)).map((k) => k.toLowerCase())),
   };

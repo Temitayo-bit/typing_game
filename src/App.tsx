@@ -109,8 +109,8 @@ export default function App({ account }: { account: Account | null }) {
   }, [avatarPath]);
 
   const onFinish = useCallback(
-    (mode: ModeKey, result: Result) => {
-      const saved: SavedResult = { ...result, mode, finishedAt: Date.now() };
+    (mode: ModeKey, result: Result, textKeys?: string[]) => {
+      const saved: SavedResult = { ...result, mode, finishedAt: Date.now(), ...(textKeys?.length ? { textKeys } : {}) };
       const after = [saved, ...results];
       // Without the real history, milestones would be guessed from an empty list.
       const reached = loadError ? [] : newMilestones(results, after);
