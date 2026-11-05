@@ -50,9 +50,17 @@ describe('lessonDrill', () => {
     expect(drill.some((w) => punctuationPool.includes(w))).toBe(true);
   });
 
-  it('uses a passage in the sentences lessons', () => {
-    expect(lessonDrill(lessons.find((l) => l.id === 19)!, 1, sources)).toEqual(['one', 'two', 'three']);
-    expect(lessonDrill(lessons.find((l) => l.id === 20)!, 8, sources)).toHaveLength(6);
+  it("uses the sentences lessons' own passages, falling back to the packs", () => {
+    const lesson19 = lessons.find((l) => l.id === 19)!;
+    expect(lesson19.passages).toContain(lessonDrill(lesson19, 1, sources, () => 0).join(' '));
+    expect(lessonDrill({ ...lesson19, passages: undefined }, 1, sources)).toEqual(['one', 'two', 'three']);
+    expect(lessonDrill({ ...lessons.find((l) => l.id === 20)!, passages: undefined }, 8, sources)).toHaveLength(6);
+  });
+
+  it("draws on a letter lesson's themed words", () => {
+    const lesson = { ...lessons.find((l) => l.id === 12)!, words: ['banana', 'bean', 'bun', 'nab'] };
+    const drill = lessonDrill(lesson, 6, { words: [], passages: [] }, seeded(7));
+    expect(drill).toContain('banana');
   });
 
   it('adds digits in the number lessons', () => {

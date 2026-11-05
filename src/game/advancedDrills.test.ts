@@ -52,7 +52,11 @@ describe('advancedDrill', () => {
     const lesson = byId(37);
     expect(advancedDrill(lesson, 1).join(' ')).toBe(lesson.passages![0]);
     expect(advancedDrill(lesson, 2).join(' ')).toBe(lesson.passages![1]);
-    expect(advancedDrill(lesson, 8, seeded(4)).length).toBeGreaterThan(advancedDrill(lesson, 1).length);
+    for (let seed = 0; seed < 20; seed++) {
+      const text = advancedDrill(lesson, 8, seeded(seed)).join(' ');
+      const used = lesson.passages!.filter((p) => text.includes(p));
+      expect(used, `seed ${seed}`).toHaveLength(2);
+    }
   });
 
   it('fails loudly when a lesson is missing its content', () => {

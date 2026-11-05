@@ -38,7 +38,7 @@ export const datesTimesPrices = [
   'Dinner on Fri 14 Feb at 7:30pm. Table for 2, about $85 with dessert.',
   'Flight leaves at 06:45 from gate 23B. Boarding closes 20 mins before.',
   'Ramen $14.50, gyoza $7, matcha latte $5.25. Total: $26.75 + tip.',
-  'Season 2 drops on 3/15. That gives us 9 days to rewatch season 1.',
+  'Season 2 drops on 15 March. That gives us 9 days to rewatch season 1.',
   'Movie at 9:10pm, seats G7 and G8. Popcorn is 50% off before 9!',
 ];
 
@@ -52,14 +52,14 @@ export const recipesAndPlans = [
 
 export const kdramaStory = [
   'The rooftop was quiet except for the city lights below. He handed her a can of warm coffee from the vending machine and said nothing at all. She knew, right then, that the next episode would ruin her.',
-  'They met when she spilled iced tea all over his very expensive coat. Two episodes later, he was carrying her shopping bags. Four episodes later, he was carrying her home, and nobody on the bus could look away.',
+  'They met when she spilled iced tea all over his very expensive coat. Two episodes later, he was carrying her shopping bags. Four episodes later, he was carrying her home, and nobody on the street could look away.',
   'Her grandmother runs a tiny noodle shop on the corner, and every regular there has an opinion about the boy who keeps ordering the same spicy bowl just to say hello to her.',
   'It snowed for the first time that winter, and an old story says the couple who sees the first snow together will stay together. She checked the window twice, just to be sure he was really there.',
 ];
 
 export const cdramaSaga = [
   'The general returned from the northern border with one sleeve torn and a single plum blossom tucked inside his armour. He did not explain it to the court. He only looked at her, and the whole palace understood.',
-  'She was a healer from a small village who refused to bow to anyone. He was a prince who pretended to be a scholar. By the tenth episode, both of them had been caught, and neither of them cared.',
+  'She was a healer from a small village who refused to bow to anyone. He was a prince who pretended to be a scholar. By the tenth episode, both of their secrets were out, and neither of them cared.',
   'Lanterns drifted down the river during the festival, each one carrying a wish. She wrote hers quickly and hid it with her sleeve, but the wind turned it around so that he could read every word.',
   'Three hundred years in the heavens felt short until the day she was sent down to the mortal world, where tea was bitter, rain was cold, and one stubborn swordsman would not stop following her.',
 ];

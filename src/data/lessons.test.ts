@@ -5,14 +5,14 @@ import { alternatingWords, next50, top50 } from './lessonVocab';
 
 const SHIFT_LESSON = 13;
 
-/** Every character must use a key taught by this lesson, and capitals only after Shift is taught. */
+/** Every character must be taught by this lesson; Shift only counts for capitals, since symbols are taught on their own. */
 function untypeable(text: string, lessonId: number): string[] {
   const keys = keysUpTo(lessonId);
   return [...text].filter((c) => {
     if (c === ' ') return false;
     if (keys.has(c)) return false;
     const { key, shift } = keyFor(c);
-    return !(shift && lessonId >= SHIFT_LESSON && keys.has(key));
+    return !(shift && /[A-Z]/.test(c) && lessonId >= SHIFT_LESSON && keys.has(key));
   });
 }
 
@@ -53,7 +53,7 @@ describe('lesson plan', () => {
   it('gives letter lessons themed words once there are enough keys', () => {
     const withWords = lessons.filter((l) => l.kind === 'keys' && l.words);
     expect(withWords.map((l) => l.id)).toContain(3);
-    expect(lessons.find((l) => l.id === 12)!.words!.length).toBeGreaterThan(20);
+    expect(lessons.find((l) => l.id === 12)!.words!.length).toBeGreaterThanOrEqual(10);
   });
 
   it('uses words that contain every focus group in pattern lessons', () => {

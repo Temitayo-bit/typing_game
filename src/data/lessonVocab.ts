@@ -33,8 +33,8 @@ first best still star story stay start fast chai lunch much such chicken chef ch
 export const symbolWords = {
   smile: ['yay!', 'wow!', 'omg!', 'hi!', ':)', ':(', ':D', '(soon)', '(again)', '(maybe)', 'note:', 'time:', 'yes!', 'finally!', '(sigh)', 'cute!', 'ugh!', 'love:'],
   tags: ['@home', '@work', '@noon', '#tbt', '#foodie', '#datenight', '#kdrama', '#mood', '#1', 'k-drama', 'c-drama', 'well-done', 're-watch', 'self-care', 'to-do', 'sing-along', 'first_name', 'my_notes'],
-  money: ['$12', '$5.50', '$30', '50%', '100%', '20%', 'R&B', 'Q&A', 'you&me', '*wink*', '*sigh*', '2+2=4', '1+1=2', 'x=5', 'a+b', '10%', '$99', '**'],
-  brackets: ['"yes"', '"no"', '"okay"', '"forever"', '<3', '<3<3', '[draft]', '[done]', '[x]', '<hi>', 'and/or', 'a/b', '->', '<-', '>_<', '[1]', '"wow"', '[note]'],
+  money: ['$12', '$5.50', '$30', '50%', '100%', '20%', 'R&B', 'Q&A', 'M&Ms', '*wink*', '*sigh*', '2+2=4', '1+1=2', 'x=5', 'a+b', '10%', '$99', '5*'],
+  brackets: ['"yes"', '"no"', '"okay"', '"forever"', '<3', '<3<3', '[draft]', '[done]', '[x]', '[tbc]', 'and/or', 'a/b', '->', '<-', '>_<', '[1]', '"wow"', '[note]'],
 };
 
 /** The most common English words, for the speed lessons. */
@@ -48,4 +48,4 @@ any these give day most us`.split(/\s+/);
 /** Words typed with strictly alternating hands, which research links to a faster, steadier rhythm. */
 export const alternatingWords = `the and for wish turn both girl city make when them also right sign hand lens half
 sight work form body pay men did end fix rich island problem eight social auto chair panel title
-blame dish odor rigor fuel lamb than they`.split(/\s+/);
+blame dish cozy flair fuel lamb than they`.split(/\s+/);

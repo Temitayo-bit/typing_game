@@ -13,16 +13,10 @@ import {
 } from './lessonPassages';
 import { alternatingWords, next50, patternWords, symbolWords, themedVocab, top50 } from './lessonVocab';
 
-export type LessonKind =
-  | 'keys'
-  | 'shift'
-  | 'punctuation'
-  | 'numbers'
-  | 'sentences'
-  | 'patterns'
-  | 'symbols'
-  | 'speed'
-  | 'reading';
+/** Kinds for lessons after every key is learned; they bring their own words or passages. */
+export const ADVANCED_KINDS = ['patterns', 'symbols', 'speed', 'reading'] as const;
+export type AdvancedKind = (typeof ADVANCED_KINDS)[number];
+export type LessonKind = 'keys' | 'shift' | 'punctuation' | 'numbers' | 'sentences' | AdvancedKind;
 
 export type Lesson = {
   id: number;
@@ -59,7 +53,7 @@ export const levels = [
  * add symbols, build speed on the most common words, then real-world text and
  * longer passages. Ids are stable because saved progress refers to them.
  */
-const plan: Lesson[] = [
+const baseLessons: Lesson[] = [
   { id: 1, level: 1, title: 'Find your spot: F and J', kind: 'keys', newKeys: ['f', 'j'], tip: 'Rest your index fingers on F and J. Feel the little bumps? That is home. Keep your eyes on the screen, not your hands.' },
   { id: 2, level: 1, title: 'Middle fingers: D and K', kind: 'keys', newKeys: ['d', 'k'], tip: 'Your middle fingers sit next to your index fingers, on D and K. Tap lightly; a soft touch is a fast touch.' },
   { id: 3, level: 1, title: 'Ring and little fingers', kind: 'keys', newKeys: ['s', 'l', 'a', ';'], tip: 'Ring fingers on S and L, little fingers on A and ;. All eight fingers are home now. Thumbs share the space bar.' },
@@ -68,10 +62,10 @@ const plan: Lesson[] = [
   { id: 6, level: 2, title: 'Reach up: R and U', kind: 'keys', newKeys: ['r', 'u'], tip: 'Index fingers reach up and slightly left for R and U. Now you can type sushi, sugar and dear.' },
   { id: 7, level: 2, title: 'Reach up: T, Y, W and O', kind: 'keys', newKeys: ['t', 'y', 'w', 'o'], tip: 'Index fingers stretch up and in for T and Y; ring fingers reach up for W and O. Slow and right beats fast and wrong.' },
   { id: 8, level: 2, title: 'Reach up: Q and P', kind: 'keys', newKeys: ['q', 'p'], tip: 'Little fingers reach up for Q and P. Keep the other fingers anchored on the home row.' },
-  { id: 9, level: 3, title: 'Reach down: V and M', kind: 'keys', newKeys: ['v', 'm'], tip: 'Index fingers curl down for V and M. Love, movie and miso are all yours now.' },
+  { id: 9, level: 3, title: 'Reach down: N and M', kind: 'keys', newKeys: ['n', 'm'], tip: 'Right index finger curls down for N and M. And, in, on, miso and mango are all yours now.' },
   { id: 10, level: 3, title: 'Reach down: C, X, comma, full stop', kind: 'keys', newKeys: ['c', 'x', ',', '.'], tip: 'Middle fingers curl down for C and comma, ring fingers for X and full stop. Keep your wrists floating, not resting.' },
   { id: 11, level: 3, title: 'Reach down: Z and slash', kind: 'keys', newKeys: ['z', '/'], tip: 'Little fingers curl down for Z and /. These are the rarest keys, so take them slowly.' },
-  { id: 12, level: 3, title: 'Last letters: B and N', kind: 'keys', newKeys: ['b', 'n'], tip: 'Left index reaches down and in for B, right index down for N. That is every letter!' },
+  { id: 12, level: 3, title: 'Last letters: V and B', kind: 'keys', newKeys: ['v', 'b'], tip: 'Left index curls down for V, then down and in for B. Love and baby are yours, and that is every letter!' },
   { id: 13, level: 4, title: 'Capitals with Shift', kind: 'shift', newKeys: [], tip: 'Hold Shift with the little finger of the other hand, then press the letter. Left-hand letter, right Shift, and the other way round.' },
   { id: 14, level: 4, title: 'Names and places', kind: 'shift', newKeys: [], tip: 'More capitals. Let go of Shift as soon as the letter is down, or you will get two capitals.' },
   { id: 15, level: 4, title: "Quotes and questions: ' and ?", kind: 'punctuation', newKeys: ["'", '?'], tip: "Right little finger: ' is next to ;, and ? is left Shift + /." },
@@ -79,7 +73,7 @@ const plan: Lesson[] = [
   { id: 17, level: 5, title: 'Numbers 1 to 5', kind: 'numbers', newKeys: ['1', '2', '3', '4', '5'], tip: 'Left hand reaches up two rows: little finger 1, ring 2, middle 3, index 4 and 5. Reach, tap, return home.' },
   { id: 18, level: 5, title: 'Numbers 6 to 0', kind: 'numbers', newKeys: ['6', '7', '8', '9', '0'], tip: 'Right hand: index 6 and 7, middle 8, ring 9, little finger 0.' },
   { id: 19, level: 5, title: 'Real sentences', kind: 'sentences', newKeys: [], tip: 'Full sentences about things you love, with capitals and punctuation. Steady and accurate.', passages: realSentences },
-  { id: 20, level: 5, title: 'The final stretch', kind: 'sentences', newKeys: [], tip: 'Longer passages. Finish this and every key on the keyboard is yours. The advanced levels come next.', passages: finalStretch },
+  { id: 20, level: 5, title: 'The final stretch', kind: 'sentences', newKeys: [], tip: 'Longer passages. Finish this and every letter, number and basic punctuation key is yours. Symbols and speed come next.', passages: finalStretch },
 
   { id: 21, level: 6, title: 'Pairs: th and he', kind: 'patterns', newKeys: [], focus: ['th', 'he', 'the'], words: patternWords.th, tip: 'TH and HE are the most common letter pairs in English. Type them as one quick roll, not two separate taps.' },
   { id: 22, level: 6, title: 'Pairs: in, an, er and re', kind: 'patterns', newKeys: [], focus: ['in', 'an', 'er', 're'], words: patternWords.inAnErRe, tip: 'Fast typists think in chunks, not letters. Let your fingers learn these pairs as single moves.' },
@@ -110,10 +104,10 @@ const plan: Lesson[] = [
 const MIN_THEMED_WORDS = 4;
 
 /** Letter lessons also get themed real words she can already type. */
-export const lessons: Lesson[] = plan.map((l) => (l.kind === 'keys' ? withThemedWords(l, plan) : l));
+export const lessons: Lesson[] = baseLessons.map((l) => (l.kind === 'keys' ? withThemedWords(l) : l));
 
-function withThemedWords(lesson: Lesson, all: readonly Lesson[]): Lesson {
-  const keys = new Set(all.filter((l) => l.id <= lesson.id).flatMap((l) => l.newKeys));
+function withThemedWords(lesson: Lesson): Lesson {
+  const keys = keysThrough(baseLessons, lesson.id);
   const typeable = themedVocab.filter((w) => [...w].every((c) => keys.has(c)));
   const fresh = typeable.filter((w) => lesson.newKeys.some((k) => w.includes(k)));
   const words = fresh.length >= MIN_THEMED_WORDS ? fresh : typeable;
@@ -125,7 +119,11 @@ export const STEP_WORDS = 20;
 export const PASS_ACCURACY = 90;
 
 export function keysUpTo(lessonId: number): Set<string> {
-  return new Set(lessons.filter((l) => l.id <= lessonId).flatMap((l) => l.newKeys));
+  return keysThrough(lessons, lessonId);
+}
+
+function keysThrough(list: readonly Lesson[], lessonId: number): Set<string> {
+  return new Set(list.filter((l) => l.id <= lessonId).flatMap((l) => l.newKeys));
 }
 
 export function findLesson(id: number): Lesson | undefined {

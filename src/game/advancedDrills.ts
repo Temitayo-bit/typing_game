@@ -1,11 +1,9 @@
-import { STEP_WORDS, STEPS_PER_LESSON, type Lesson } from '../data/lessons';
+import { ADVANCED_KINDS, STEP_WORDS, STEPS_PER_LESSON, type AdvancedKind, type Lesson } from '../data/lessons';
 import { commonWords } from '../data/words';
 import { splitText, type Random } from './words';
 
-export type AdvancedKind = 'patterns' | 'symbols' | 'speed' | 'reading';
-
 export function isAdvanced(lesson: Lesson): lesson is Lesson & { kind: AdvancedKind } {
-  return lesson.kind === 'patterns' || lesson.kind === 'symbols' || lesson.kind === 'speed' || lesson.kind === 'reading';
+  return (ADVANCED_KINDS as readonly string[]).includes(lesson.kind);
 }
 
 /**
@@ -43,7 +41,8 @@ export function advancedDrill(lesson: Lesson & { kind: AdvancedKind }, step: num
       const passages = need(lesson.passages, lesson, 'passages');
       // Each early practice gets its own passage; the checkpoint strings two together.
       const first = step <= passages.length ? passages[step - 1]! : pick(passages);
-      const text = last ? `${first} ${pick(passages.filter((p) => p !== first).concat(first))}` : first;
+      const others = passages.filter((p) => p !== first);
+      const text = last && others.length > 0 ? `${first} ${pick(others)}` : first;
       return splitText(text);
     }
   }
