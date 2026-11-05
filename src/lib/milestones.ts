@@ -1,7 +1,7 @@
 import { lessons, STEPS_PER_LESSON } from '../data/lessons';
 import type { SavedResult } from './history';
 import { isSpeedTest } from './modes';
-import { longestStreak, passedStep, parseLessonKey } from './progress';
+import { longestStreak, passedStepsOf } from './progress';
 
 export type Milestone = { id: string; title: string };
 
@@ -21,10 +21,7 @@ const rules: Rule[] = [
   ...lessons.map((l) => ({
     id: `lesson-${l.id}`,
     title: `Lesson ${l.id} complete: ${l.title}`,
-    reached: (rs: readonly SavedResult[]) => {
-      const steps = new Set(rs.filter((r) => passedStep(r)).map((r) => parseLessonKey(r.mode)).filter((x) => x?.lessonId === l.id).map((x) => x!.step));
-      return steps.size === STEPS_PER_LESSON;
-    },
+    reached: (rs: readonly SavedResult[]) => passedStepsOf(rs, l.id).size === STEPS_PER_LESSON,
   })),
   ...[3, 7, 14, 30].map((days) => ({
     id: `streak-${days}`,

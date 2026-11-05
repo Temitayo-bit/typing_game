@@ -3,7 +3,7 @@ import { findLesson, keysUpTo, lessons, PASS_ACCURACY, STEPS_PER_LESSON } from '
 import type { Result } from '../game/stats';
 import type { SavedResult } from '../lib/history';
 import { lessonKey, type ModeKey } from '../lib/modes';
-import { isUnlocked, nextStep, passedStep, type StepRef } from '../lib/progress';
+import { isUnlocked, nextStep, passedStep, passedStepsOf, type StepRef } from '../lib/progress';
 import type { Route } from '../lib/route';
 import { Card } from '../components/ui';
 import { Practice } from './Practice';
@@ -18,11 +18,9 @@ type Props = {
 
 export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props) {
   const lesson = findLesson(lessonId);
-  const passed = new Set(
-    results.filter((r) => passedStep(r)).map((r) => r.mode).filter((m) => m.startsWith(`lesson-${lessonId}-`)),
-  );
+  const passed = passedStepsOf(results, lessonId);
   const firstOpen = Array.from({ length: STEPS_PER_LESSON }, (_, i) => i + 1).find(
-    (s) => !passed.has(lessonKey(lessonId, s)) && isUnlocked({ lessonId, step: s }, unlocked),
+    (s) => !passed.has(s) && isUnlocked({ lessonId, step: s }, unlocked),
   );
   const [chosen, setChosen] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -74,7 +72,7 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
           unlocked={unlocked}
           onFinish={finish}
           guide={{ unlocked: keysUpTo(lesson.id), fresh: lesson.newKeys }}
-          lessonOutcome={(r) => ({ passed: passedStep(r), goalAccuracy: PASS_ACCURACY, hasNext: !isLast })}
+          lessonOutcome={(r) => (passedStep(r) ? { passed: true, hasNext: !isLast } : { passed: false })}
           onNextLesson={goNext}
         />
         <p className="m-0 text-[15px] text-muted">
@@ -92,7 +90,7 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
           <div className="mt-4 flex flex-wrap gap-2">
             {Array.from({ length: STEPS_PER_LESSON }, (_, i) => i + 1).map((s) => {
               const open = isUnlocked({ lessonId, step: s }, unlocked);
-              const done = passed.has(lessonKey(lessonId, s));
+              const done = passed.has(s);
               return (
                 <button
                   key={s}

@@ -1,5 +1,3 @@
-import { personalTexts } from './personalTexts';
-
 export type Pack = { id: string; name: string; blurb: string; tint: string; passages: string[] };
 
 /** Original passages inspired by things she loves, not quoted from them. */
@@ -82,5 +80,4 @@ export const packs: Pack[] = [
       'three meetings, one spreadsheet, and a calendar invite titled quick sync that was not quick at all',
     ],
   },
-  { id: 'from-me', name: 'From me', blurb: 'Little notes, just for you', tint: '#F06A9B', passages: personalTexts },
 ];

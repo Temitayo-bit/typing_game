@@ -105,34 +105,16 @@ describe('lesson steps', () => {
     expect(lessonStatus(results, 3, unlocked)).toMatchObject({ state: 'locked', passedSteps: 0 });
   });
 
+  it('tracks best accuracy including failed tries, and 7 of 8 steps is still current', () => {
+    const tries = [1, 2, 3, 4, 5, 6, 7].map((s) => pass(`lesson-1-${s}`)).concat(result({ mode: 'lesson-1-8', accuracy: 95 - 10 }));
+    expect(lessonStatus(tries, 1, unlockedStep(tries))).toMatchObject({ state: 'current', passedSteps: 7, bestAccuracy: 90 });
+    expect(lessonStatus([], 2, unlockedStep([])).bestAccuracy).toBeUndefined();
+  });
+
   it('finds the next step', () => {
     expect(nextStep({ lessonId: 1, step: 8 })).toEqual({ lessonId: 2, step: 1 });
     expect(nextStep({ lessonId: 20, step: 8 })).toBeNull();
     expect(isUnlocked({ lessonId: 2, step: 3 }, { lessonId: 2, step: 2 })).toBe(false);
-  });
-});
-
-describe('parseExport', () => {
-  it('accepts a valid export, keeping every field and dropping ids', () => {
-    const full = result({ missedKeys: { e: 2 }, wpmBySecond: [30, 40] });
-    expect(parseExport({ version: 1, results: [{ ...full, id: 7 }] })).toEqual([full]);
-  });
-
-  it('rejects results with missing or wrong fields', () => {
-    const bad = [
-      { wpm: 1, accuracy: 1, mode: 'time-30', finishedAt: 1 },
-      { ...result({}), mode: 'bogus' },
-      { ...result({}), missedKeys: { e: 'x' } },
-      { ...result({}), wpmBySecond: [1, 'a'] },
-      { ...result({}), wpm: Number.NaN },
-      null,
-    ];
-    for (const r of bad) expect(() => parseExport({ version: 1, results: [r] })).toThrow('Result 1');
-  });
-
-  it('rejects files that are not exports', () => {
-    expect(() => parseExport({ results: [] })).toThrow("That file isn't a progress export");
-    expect(() => parseExport({ version: 1, results: [{ wpm: 'fast' }] })).toThrow('Result 1');
   });
 });
 

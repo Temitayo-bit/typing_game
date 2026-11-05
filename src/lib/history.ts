@@ -4,7 +4,7 @@ import { isModeKey, type ModeKey } from './modes';
 
 export type SavedResult = Result & { id?: number; mode: ModeKey; finishedAt: number };
 
-const db = new Dexie('typing-game') as Dexie & { results: EntityTable<SavedResult, 'id'> };
+export const db = new Dexie('typing-game') as Dexie & { results: EntityTable<SavedResult, 'id'> };
 db.version(1).stores({ results: '++id, mode, finishedAt' });
 
 export async function saveResult(result: SavedResult): Promise<void> {

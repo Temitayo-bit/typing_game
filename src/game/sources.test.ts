@@ -44,4 +44,19 @@ describe('fixed texts', () => {
     const words = wordSource({ kind: 'weak', keys: ['z'] }, { lessonId: 20, step: 1 }, seeded(3))(0);
     expect(words).toHaveLength(25);
   });
+
+  it('fills a fixed word count from drills early on', () => {
+    expect(wordSource({ kind: 'words', count: 25 }, { lessonId: 1, step: 1 }, seeded(4))(60)).toHaveLength(25);
+  });
+
+  it('throws on unknown lessons, packs and notes', () => {
+    const at = { lessonId: 1, step: 1 };
+    expect(() => wordSource({ kind: 'lesson', lessonId: 99, step: 1 }, at)).toThrow();
+    expect(() => wordSource({ kind: 'pack', packId: 'nope' }, at)).toThrow();
+    expect(() => wordSource({ kind: 'note', noteId: 'nope' }, at)).toThrow();
+  });
+
+  it('falls back to all words for a weak drill when few are learned', () => {
+    expect(wordSource({ kind: 'weak', keys: ['z'] }, { lessonId: 1, step: 1 }, seeded(5))(0)).toHaveLength(25);
+  });
 });

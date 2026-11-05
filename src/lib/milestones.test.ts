@@ -40,4 +40,28 @@ describe('newMilestones', () => {
     const ids = newMilestones([result({}), ...steps.slice(0, 7)], [result({}), ...steps]).map((m) => m.id);
     expect(ids).toEqual(['lesson-2']);
   });
+
+  it('celebrates a streak the first time it is reached', () => {
+    const day = (d: number) => result({ finishedAt: new Date(2026, 4, d, 12).getTime() });
+    const rs = [day(3), day(2), day(1)];
+    expect(newMilestones(rs.slice(1), rs).map((m) => m.id)).toContain('streak-3');
+  });
+
+  it('counts exactly 20 wpm and a perfect run', () => {
+    const ids = newMilestones([result({})], [result({}), result({ wpm: 20, accuracy: 100 })]).map((m) => m.id);
+    expect(ids).toEqual(['wpm-20', 'accuracy-95', 'accuracy-100']);
+  });
+
+  it('completes a lesson only when all 8 steps pass, and only once', () => {
+    const step = (s: number, accuracy = 90) => result({ mode: `lesson-1-${s}`, accuracy });
+    const seven = [1, 2, 3, 4, 5, 6, 7].map((s) => step(s));
+    expect(newMilestones([result({}), ...seven], [result({}), ...seven, step(8, 89)])).toEqual([]);
+    const all = [result({}), ...seven, step(8)];
+    expect(newMilestones(all.slice(0, -1), all).map((m) => m.id)).toEqual(['lesson-1']);
+    expect(newMilestones(all, [...all, step(8)])).toEqual([]);
+  });
+
+  it('counts a lesson drill as the first test', () => {
+    expect(newMilestones([], [result({ mode: 'lesson-1-1' })]).map((m) => m.id)).toEqual(['first-test']);
+  });
 });

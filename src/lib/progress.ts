@@ -96,16 +96,23 @@ export function isUnlocked(ref: StepRef, unlocked: StepRef): boolean {
   return stepIndex(ref) <= stepIndex(unlocked);
 }
 
+/** Steps of one lesson she has passed at least once. */
+export function passedStepsOf(results: readonly SavedResult[], lessonId: number): Set<number> {
+  const passed = new Set<number>();
+  for (const r of results) {
+    const ref = parseLessonKey(r.mode);
+    if (ref?.lessonId === lessonId && passedStep(r)) passed.add(ref.step);
+  }
+  return passed;
+}
+
 export type LessonStatus = { passedSteps: number; bestAccuracy: number | undefined; state: 'done' | 'current' | 'locked' };
 
 export function lessonStatus(results: readonly SavedResult[], lessonId: number, unlocked: StepRef): LessonStatus {
-  const passed = new Set<number>();
+  const passed = passedStepsOf(results, lessonId);
   let bestAccuracy: number | undefined;
   for (const r of results) {
-    const ref = parseLessonKey(r.mode);
-    if (ref?.lessonId !== lessonId) continue;
-    bestAccuracy = Math.max(bestAccuracy ?? 0, r.accuracy);
-    if (passedStep(r)) passed.add(ref.step);
+    if (parseLessonKey(r.mode)?.lessonId === lessonId) bestAccuracy = Math.max(bestAccuracy ?? 0, r.accuracy);
   }
   const done = passed.size === STEPS_PER_LESSON;
   const state = done ? 'done' : isUnlocked({ lessonId, step: 1 }, unlocked) ? 'current' : 'locked';

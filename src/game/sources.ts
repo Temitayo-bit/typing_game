@@ -42,14 +42,18 @@ export function wordSource(selection: Selection, unlocked: StepRef, random: Rand
       return (count) => {
         const want = fixed ?? count;
         const out: string[] = [];
-        while (out.length < want) out.push(...lessonDrill(lesson, 2, { words, passages: [] }, random));
+        while (out.length < want) {
+          const drill = lessonDrill(lesson, 2, { words, passages: [] }, random);
+          if (drill.length === 0) throw new Error(`Lesson ${lesson.id} has no drill text`);
+          out.push(...drill);
+        }
         return out.slice(0, want);
       };
     }
     case 'lesson': {
       const lesson = findLesson(selection.lessonId);
       if (!lesson) throw new Error(`Unknown lesson ${selection.lessonId}`);
-      const passages = packs.filter((p) => p.id !== 'from-me').flatMap((p) => p.passages);
+      const passages = packs.flatMap((p) => p.passages);
       return () => lessonDrill(lesson, selection.step, { words: allWords, passages }, random);
     }
     case 'weak': {
@@ -58,13 +62,15 @@ export function wordSource(selection: Selection, unlocked: StepRef, random: Rand
     }
     case 'pack': {
       const pack = packs.find((p) => p.id === selection.packId);
-      const passages = (pack?.passages ?? []).filter((p) => splitText(p).length > 0);
+      if (!pack) throw new Error(`Unknown pack ${selection.packId}`);
+      const passages = pack.passages.filter((p) => splitText(p).length > 0);
       const usable = passages.length > 0 ? passages : [commonWords.slice(0, 25).join(' ')];
       return () => splitText(usable[Math.floor(random() * usable.length)]!);
     }
     case 'note': {
       const note = notes.find((n) => n.id === selection.noteId);
-      const words = note ? splitText(note.text) : [];
+      if (!note) throw new Error(`Unknown note ${selection.noteId}`);
+      const words = splitText(note.text);
       return () => (words.length > 0 ? words : commonWords.slice(0, 10));
     }
   }

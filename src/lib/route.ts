@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { findLesson } from '../data/lessons';
 
 export type Route =
   | { page: 'home' }
@@ -15,7 +16,7 @@ export function parseRoute(hash: string): Route {
     case 'lessons':
     case 'progress':
     case 'notes':
-      if (page === 'lessons' && arg && /^\d+$/.test(arg)) return { page: 'lesson', lessonId: Number(arg) };
+      if (page === 'lessons' && arg && /^[1-9]\d*$/.test(arg) && findLesson(Number(arg))) return { page: 'lesson', lessonId: Number(arg) };
       return { page };
     default:
       return { page: 'home' };

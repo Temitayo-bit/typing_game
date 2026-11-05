@@ -1,5 +1,7 @@
 export type NoteUnlock = { kind: 'start' } | { kind: 'streak'; days: number } | { kind: 'tests'; count: number };
 
+export type NoteStats = { streak: number; longestStreak: number; tests: number };
+
 export type Note = { id: string; tag: string; text: string; unlock: NoteUnlock };
 
 /**
@@ -15,7 +17,7 @@ export const notes: Note[] = [
   { id: 'thirty', tag: 'Test number 30', text: 'thirty tests done, so here is a reminder that you are brilliant at everything you decide to learn', unlock: { kind: 'tests', count: 30 } },
 ];
 
-export function noteUnlocked(note: Note, stats: { streak: number; longestStreak: number; tests: number }): boolean {
+export function noteUnlocked(note: Note, stats: NoteStats): boolean {
   switch (note.unlock.kind) {
     case 'start':
       return true;
@@ -26,7 +28,7 @@ export function noteUnlocked(note: Note, stats: { streak: number; longestStreak:
   }
 }
 
-export function unlockHint(note: Note, stats: { streak: number; longestStreak: number; tests: number }): string {
+export function unlockHint(note: Note, stats: NoteStats): string {
   switch (note.unlock.kind) {
     case 'start':
       return '';

@@ -48,7 +48,7 @@ export function TestView(props: Props) {
   }, [last]);
 
   if (result) {
-    const next = outcome?.passed && outcome.hasNext && props.onNextLesson ? props.onNextLesson : restart;
+    const next = outcome?.passed === true && outcome.hasNext && props.onNextLesson ? props.onNextLesson : restart;
     return (
       <ResultCard
         result={result}
