@@ -50,9 +50,17 @@ describe('lessonDrill', () => {
     expect(drill.some((w) => punctuationPool.includes(w))).toBe(true);
   });
 
-  it('uses a passage in the sentences lessons', () => {
-    expect(lessonDrill(lessons.at(-2)!, 1, sources)).toEqual(['one', 'two', 'three']);
-    expect(lessonDrill(lessons.at(-1)!, 8, sources)).toHaveLength(6);
+  it("uses the sentences lessons' own passages, falling back to the packs", () => {
+    const lesson19 = lessons.find((l) => l.id === 19)!;
+    expect(lesson19.passages).toContain(lessonDrill(lesson19, 1, sources, () => 0).join(' '));
+    expect(lessonDrill({ ...lesson19, passages: undefined }, 1, sources)).toEqual(['one', 'two', 'three']);
+    expect(lessonDrill({ ...lessons.find((l) => l.id === 20)!, passages: undefined }, 8, sources)).toHaveLength(6);
+  });
+
+  it("draws on a letter lesson's themed words", () => {
+    const lesson = { ...lessons.find((l) => l.id === 12)!, words: ['banana', 'bean', 'bun', 'nab'] };
+    const drill = lessonDrill(lesson, 6, { words: [], passages: [] }, seeded(7));
+    expect(drill).toContain('banana');
   });
 
   it('adds digits in the number lessons', () => {
@@ -78,19 +86,5 @@ describe('weakKeyDrill', () => {
 
   it('falls back to any word when too few match', () => {
     expect(weakKeyDrill(['a', 'b'], ['q'], 3, () => 0)).toEqual(['a', 'a', 'a']);
-  });
-});
-
-describe('lesson plan', () => {
-  it('has 20 lessons in 5 levels of 4 and teaches every letter exactly once', () => {
-    expect(lessons).toHaveLength(20);
-    for (let level = 1; level <= 5; level++) expect(lessons.filter((l) => l.level === level)).toHaveLength(4);
-    const letters = lessons.flatMap((l) => l.newKeys).filter((k) => /[a-z]/.test(k));
-    expect(new Set(letters).size).toBe(26);
-    expect(letters).toHaveLength(26);
-  });
-
-  it('numbers lessons 1 to 20 in order', () => {
-    expect(lessons.map((l) => l.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
   });
 });

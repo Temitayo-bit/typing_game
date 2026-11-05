@@ -1,4 +1,5 @@
 import { keysUpTo, punctuationPool, STEP_WORDS, STEPS_PER_LESSON, type Lesson } from '../data/lessons';
+import { advancedDrill } from './advancedDrills';
 import type { Random } from './words';
 
 export type DrillSources = { words: readonly string[]; passages: readonly string[] };
@@ -7,7 +8,7 @@ export type DrillSources = { words: readonly string[]; passages: readonly string
 export function lessonDrill(lesson: Lesson, step: number, sources: DrillSources, random: Random = Math.random): string[] {
   const allowed = keysUpTo(lesson.id);
   const letters = new Set([...allowed].filter((k) => !/[0-9]/.test(k)));
-  const words = unique(sources.words.filter((w) => [...w].every((c) => letters.has(c))));
+  const words = unique([...(lesson.words ?? []), ...sources.words].filter((w) => [...w].every((c) => letters.has(c))));
   const last = step === STEPS_PER_LESSON;
   const count = last ? STEP_WORDS + 5 : STEP_WORDS;
   // 0 on the first step, 1 on the checkpoint: drills drift from drills to real typing.
@@ -15,6 +16,12 @@ export function lessonDrill(lesson: Lesson, step: number, sources: DrillSources,
   const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(random() * xs.length)]!;
 
   switch (lesson.kind) {
+    case 'patterns':
+    case 'symbols':
+    case 'speed':
+    case 'reading':
+      // The spread narrows the lesson type to its kind for the generator.
+      return advancedDrill({ ...lesson, kind: lesson.kind }, step, random);
     case 'keys': {
       const withNew = words.filter((w) => lesson.newKeys.some((k) => w.includes(k)));
       if (step <= 3) return letterGroups(allowed, lesson.newKeys, 0.85 - step * 0.1, count, random);
@@ -41,7 +48,8 @@ export function lessonDrill(lesson: Lesson, step: number, sources: DrillSources,
       });
     }
     case 'sentences': {
-      const passages = sources.passages.length > 0 ? sources.passages : [words.slice(0, 20).join(' ')];
+      const own = lesson.passages ?? [];
+      const passages = own.length > 0 ? own : sources.passages.length > 0 ? sources.passages : [words.slice(0, 20).join(' ')];
       const passage = pick(passages).split(/\s+/).filter(Boolean);
       // The final lesson strings two passages together for a longer run.
       return lesson.id === 20 && last ? [...passage, ...pick(passages).split(/\s+/).filter(Boolean)] : passage;
