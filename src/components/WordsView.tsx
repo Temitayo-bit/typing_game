@@ -63,7 +63,10 @@ function Word({ target, typed, active, committed, ref }: WordProps) {
         <span key={`x${i}`} className="text-error/70">{ch}</span>
       ))}
       {active && text.length >= target.length && (
-        <span className="relative inline-block w-0">
+        // An empty inline-block sits on the baseline, which dropped the caret below the line.
+        // A zero-width word joiner gives it the same box as a letter without allowing a line break.
+        <span className="relative">
+          {'\u2060'}
           <Caret />
         </span>
       )}
