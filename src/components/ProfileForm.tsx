@@ -61,25 +61,29 @@ export function ProfileForm({ userId, initial, submitLabel, onSaved }: Props) {
   const field = 'min-h-12 rounded-2xl border border-line bg-cream px-4 font-normal';
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-5">
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-petal text-sm text-muted">
-          {preview ? <img src={preview} alt="Your photo" className="h-full w-full object-cover" /> : 'no photo'}
-        </div>
-        <label className="flex flex-col gap-1.5 font-bold">
-          Profile photo {initial?.avatarPath ? '' : '(required)'}
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(e) => {
-              const f = e.target.files?.[0] ?? null;
-              const problem = f && photoProblem(f);
-              setError(problem || null);
-              setFile(f && !problem ? { file: f, url: URL.createObjectURL(f) } : null);
-            }}
-            className="text-sm font-normal"
-          />
-        </label>
-      </div>
+      <label className="flex cursor-pointer flex-wrap items-center gap-5 rounded-3xl border-2 border-dashed border-rose bg-cream p-4 hover:bg-petal focus-within:ring-2 focus-within:ring-accent">
+        <span className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blush text-4xl text-berry">
+          {preview ? <img src={preview} alt="Your photo" className="h-full w-full object-cover" /> : <CameraIcon />}
+        </span>
+        <span className="flex flex-col gap-2">
+          <span className="font-bold">{preview ? 'Looking good!' : 'Add your photo'}{initial?.avatarPath ? '' : ' (required)'}</span>
+          <span className="self-start rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white">
+            {preview ? 'Change photo' : 'Choose a photo'}
+          </span>
+          <span className="text-xs text-muted">JPG, PNG or WebP, up to 2 MB</span>
+        </span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null;
+            const problem = f && photoProblem(f);
+            setError(problem || null);
+            setFile(f && !problem ? { file: f, url: URL.createObjectURL(f) } : null);
+          }}
+        />
+      </label>
       <label className="flex flex-col gap-1.5 font-bold">
         What should we call you?
         <input required maxLength={40} value={name} onChange={(e) => setName(e.target.value)} className={field} autoComplete="given-name" />
@@ -97,5 +101,14 @@ export function ProfileForm({ userId, initial, submitLabel, onSaved }: Props) {
         {saving ? 'Saving…' : submitLabel}
       </button>
     </form>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+      <circle cx="12" cy="13.5" r="3.5" />
+    </svg>
   );
 }
