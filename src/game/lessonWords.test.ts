@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { drillFor, lessonPlan } from '../data/drills';
+import { drillFor, lessonPlan, planFor } from '../data/drills';
 import { keysUpTo, lessonWordPool, lessons, punctuationPool, STEPS_PER_LESSON } from '../data/lessons';
 import { commonWords } from '../data/words';
 import { packs } from '../data/packs';
@@ -43,6 +43,23 @@ describe('lessonDrill', () => {
   it('starts with only f and j, one key at a time', () => {
     const drill = lessonDrill(lessons[0]!, 1, sources, seeded(3));
     expect(drill.every((w) => /^(f+|j+)$/.test(w))).toBe(true);
+  });
+
+  it('gives the vowel-free first lessons letter-group drills instead of word drills', () => {
+    expect(planFor(lessons[0]!).some((d) => /words/.test(d.type))).toBe(false);
+    expect(planFor(lessons.find((l) => l.id === 9)!)).toBe(lessonPlan('keys'));
+  });
+
+  it('keeps new punctuation keys in the word practices', () => {
+    const lesson = lessons.find((l) => l.newKeys.includes(','))!;
+    const checkpoint = lessonDrill(lesson, STEPS_PER_LESSON, sources, seeded(11)).join(' ');
+    expect(checkpoint).toMatch(/[,.]/);
+  });
+
+  it('never counts just one of a plural thing', () => {
+    const lesson = lessons.find((l) => l.kind === 'numbers')!;
+    const step = lessonPlan('numbers').findIndex((d) => d.type === 'counting') + 1;
+    for (const seed of [1, 2, 3, 4, 5]) expect(lessonDrill(lesson, step, sources, seeded(seed)).join(' ')).not.toMatch(/(^| )1 /);
   });
 
   it('rolls new keys against old ones in the second practice', () => {
@@ -109,7 +126,8 @@ describe('lessonDrill', () => {
   it('uses a passage for story practices and two for the long one', () => {
     const lesson = lessons.find((l) => l.kind === 'sentences')!;
     const story = lessonPlan('sentences').findIndex((d) => d.type === 'story') + 1;
-    expect(lessonDrill(lesson, story, { ...sources, passages: ['one two three'] })).toEqual(['one', 'two', 'three']);
+    // Shared passages are lowercase; by the sentence lessons they get a capital and a full stop.
+    expect(lessonDrill(lesson, story, { ...sources, passages: ['one two three'] })).toEqual(['One', 'two', 'three.']);
     expect(lessonDrill(lesson, 8, { ...sources, passages: ['one two', 'three four five'] }, seeded(1))).toHaveLength(5);
   });
 
@@ -125,7 +143,7 @@ describe('lessonDrill', () => {
   it("prefers a lesson's own words and passages", () => {
     const base = lessons.find((l) => l.id === 12)!;
     const own = { ...base, words: ['bean', 'been', 'blue', 'bank', 'bun', 'nab', 'ban', 'nib'], passages: ['a blue bean'] };
-    const words = lessonDrill(own, 4, sources, seeded(7));
+    const words = lessonDrill(own, lessonPlan('keys').findIndex((d) => d.seconds) + 1, sources, seeded(7));
     expect(words.every((w) => own.words.includes(w))).toBe(true);
   });
 
@@ -154,7 +172,8 @@ describe('lesson plans', () => {
     for (const kind of kinds) {
       const plan = lessonPlan(kind);
       expect(plan.some((d) => d.seconds), kind).toBe(true);
-      expect(plan.some((d) => d.hideKeyboard), kind).toBe(true);
+      // Even good typists glance at the number row, so number lessons keep the keyboard.
+      if (kind !== 'numbers') expect(plan.some((d) => d.hideKeyboard), kind).toBe(true);
       expect(plan.at(-1)?.noBackspace, kind).toBe(true);
     }
   });

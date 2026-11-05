@@ -139,6 +139,12 @@ describe('practice rules', () => {
     expect(s.keystrokes.map((k) => k.correct)).toEqual([true, false, true]);
   });
 
+  it('counts a run of wrong presses at one spot as a single miss', () => {
+    const strict = createTest({ kind: 'text' }, ['hi', 'you'], { stopOnError: true });
+    const s = type(strict, 'hxxxi');
+    expect(s.keystrokes.map((k) => k.correct)).toEqual([true, false, true]);
+  });
+
   it('expects space after a finished word when the cursor waits', () => {
     const strict = createTest({ kind: 'text' }, ['hi', 'you'], { stopOnError: true });
     const s = type(strict, 'hix');

@@ -90,6 +90,7 @@ export function TestView(props: Props) {
       <div className="relative">
         <WordsView test={test} faded={paused} />
         {test.status === 'ready' && <p className="mt-2 text-muted">start typing whenever you're ready</p>}
+        {rules?.noBackspace && test.status === 'running' && <p className="mt-2 text-muted">backspace is off for this one, just keep going</p>}
         {paused && <p className="mt-2 font-bold text-berry">paused, press any key to carry on</p>}
         {test.status === 'running' && mode.kind === 'text' && test.wordIndex === test.targets.length - 1 &&
           (test.typed[test.wordIndex] ?? '').length >= (test.targets[test.wordIndex] ?? '').length && (

@@ -68,11 +68,7 @@ function char(state: TestState, c: string, t: number): TestState {
   const target = state.targets[state.wordIndex] ?? '';
   const current = state.typed[state.wordIndex] ?? '';
   const expected = target[current.length] ?? null;
-  if (state.rules.stopOnError && c !== expected) {
-    // At the end of a word the right key is space.
-    const want = expected ?? ' ';
-    return { ...state, status: 'running', keystrokes: [...state.keystrokes, { t, expected: want, typed: c, correct: false }] };
-  }
+  if (state.rules.stopOnError && c !== expected) return heldMiss(state, expected ?? ' ', c, t);
   const typed = withWord(state.typed, state.wordIndex, current + c);
   const next: TestState = {
     ...state,
@@ -95,7 +91,7 @@ function space(state: TestState, t: number): TestState {
   const skipped = current.length < target.length;
   const expected = skipped ? (target[current.length] ?? ' ') : ' ';
   const keystroke: Keystroke = { t, expected, typed: ' ', correct: !skipped };
-  if (skipped && state.rules.stopOnError) return { ...state, keystrokes: [...state.keystrokes, keystroke] };
+  if (skipped && state.rules.stopOnError) return heldMiss(state, expected, ' ', t);
   const keystrokes = [...state.keystrokes, keystroke];
   const isLastWord = state.wordIndex === state.targets.length - 1;
   return {
@@ -105,6 +101,16 @@ function space(state: TestState, t: number): TestState {
     wordIndex: state.wordIndex + 1,
     keystrokes,
   };
+}
+
+/**
+ * A wrong key while the cursor waits. Only the first wrong press at a spot counts as a miss,
+ * so hunting for a key isn't punished over and over.
+ */
+function heldMiss(state: TestState, expected: string, typed: string, t: number): TestState {
+  const last = state.keystrokes.at(-1);
+  if (last && !last.correct) return state.status === 'running' ? state : { ...state, status: 'running' };
+  return { ...state, status: 'running', keystrokes: [...state.keystrokes, { t, expected, typed, correct: false }] };
 }
 
 function backspace(state: TestState): TestState {

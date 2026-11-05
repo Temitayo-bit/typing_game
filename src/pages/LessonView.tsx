@@ -70,11 +70,15 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
         <div className="flex flex-col gap-2 rounded-[22px] bg-blush px-5 py-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="m-0 font-display text-xl font-semibold">{drill.title}</h2>
-            {twists(drill).map((t) => (
-              <span key={t} className="rounded-full bg-petal px-3 py-1 text-sm font-bold text-wine">
-                {t}
-              </span>
-            ))}
+            {twists(drill).length > 0 && (
+              <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="Rules for this practice">
+                {twists(drill).map((t) => (
+                  <li key={t} className="rounded-md border border-wine/30 px-2 py-0.5 text-xs font-semibold text-wine">
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <p className="m-0 leading-normal">{drill.blurb}</p>
         </div>
@@ -89,7 +93,8 @@ export function LessonView({ lessonId, results, unlocked, go, onFinish }: Props)
           onNextLesson={goNext}
         />
         <p className="m-0 text-[15px] text-muted">
-          Goal to unlock the next practice: <strong className="text-ink">{PASS_ACCURACY}% accuracy</strong>. Speed does not matter yet.
+          Goal to unlock the next practice: <strong className="text-ink">{PASS_ACCURACY}% accuracy</strong>.{' '}
+          {drill.seconds ? 'Keep going until the clock runs out. The speed is just for fun.' : 'Speed does not matter yet.'}
         </p>
       </Card>
       <Card className="sm:p-6">
@@ -130,7 +135,7 @@ function twists(drill: Drill): string[] {
   const out: string[] = [];
   if (drill.seconds) out.push(`${drill.seconds} seconds`);
   if (drill.noBackspace) out.push('no backspace');
-  if (drill.stopOnError) out.push('right key only');
+  if (drill.stopOnError) out.push('find the right key');
   if (drill.hideKeyboard) out.push('no keyboard');
   return out;
 }

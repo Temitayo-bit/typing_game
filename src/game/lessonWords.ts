@@ -57,6 +57,8 @@ function context(lesson: Lesson, step: number, sources: DrillSources, random: Ra
   const chunks = lessonList(lesson, 'focus').filter(typeable);
   const focus = chunks.length > 0 ? chunks : lesson.newKeys.filter((k) => keys.has(k));
   const focusKeys = focus.length > 0 ? focus : allowed.filter((k) => /[a-z]/.test(k));
+  // Once capitals and full stops are learned, shared passages read as proper sentences.
+  const tidy = (p: string) => (capitals && keys.has('.') ? sentenceCase(p) : p);
   const ownPassages = lessonList(lesson, 'passages').filter(typeable);
   return {
     lesson,
@@ -69,7 +71,7 @@ function context(lesson: Lesson, step: number, sources: DrillSources, random: Ra
     digits: allowed.filter((k) => /[0-9]/.test(k)),
     words,
     focusWords: focus.length > 0 ? words.filter((w) => focus.some((k) => w.includes(k))) : words,
-    passages: ownPassages.length > 0 ? ownPassages : sources.passages.filter(typeable),
+    passages: ownPassages.length > 0 ? ownPassages : sources.passages.map(tidy).filter(typeable),
     // Word pools are lowercase, so a missed capital is drilled as its letter.
     weakKeys: unique((sources.weakKeys ?? []).filter((k) => k.length === 1 && k !== ' ' && chars.has(k)).map((k) => k.toLowerCase())),
   };
@@ -128,7 +130,7 @@ function build(type: DrillType, c: Ctx): string[] {
     case 'short-sentences':
       return phrases(text.capitalSentences.filter((s) => splitText(s).length <= 8), c);
     case 'contractions': {
-      const pool = unique([...text.contractions, ...punctuationPool]).filter(c.typeable);
+      const pool = unique([...text.contractions, ...punctuationPool]).filter((w) => w.includes("'") && c.typeable(w));
       if (pool.length < 4) return [];
       return fill(() => (c.random() < 0.7 || c.words.length === 0 ? pick(pool) : pick(c.words)));
     }
@@ -154,13 +156,13 @@ function build(type: DrillType, c: Ctx): string[] {
     case 'counting': {
       const things = text.countables.filter(c.typeable);
       if (c.digits.length === 0 || things.length === 0) return [];
-      return Array.from({ length: Math.ceil(c.count / 2) }, () => [number(c, 1, 2), pick(things)]).flat();
+      return Array.from({ length: Math.ceil(c.count / 2) }, () => [plural(c), pick(things)]).flat();
     }
     case 'long-numbers':
       return c.digits.length === 0 ? [] : fill(() => number(c, 3, 5));
     case 'number-sentences': {
       if (c.digits.length === 0) return [];
-      const filled = text.numberTemplates.map((t) => t.replace(/#/g, () => number(c, 1, 2)));
+      const filled = text.numberTemplates.map((t) => t.replace(/#/g, () => plural(c)));
       return phrases(filled, c);
     }
     case 'story':
@@ -206,9 +208,12 @@ function echoBases(c: Ctx): string[] {
 function mixedWords(c: Ctx): string[] {
   if (c.words.length < 4) return letterGroups(c, 0.5);
   const lean = c.focusWords.length >= 4 && c.focusWords.length < c.words.length;
+  // New punctuation keys (like , . or /) rarely appear in words, so they ride along at the end.
+  const marks = c.lesson.kind === 'keys' ? c.focus.filter((k) => /[^a-z0-9]/i.test(k)) : [];
   return Array.from({ length: c.count }, () => {
     const pool = lean && c.random() < 0.4 ? c.focusWords : c.words;
-    return pool[Math.floor(c.random() * pool.length)]!;
+    const word = pool[Math.floor(c.random() * pool.length)]!;
+    return marks.length > 0 && c.random() < 0.3 ? word + marks[Math.floor(c.random() * marks.length)]! : word;
   });
 }
 
@@ -259,6 +264,21 @@ function number(c: Ctx, min: number, max: number): string {
   let out = pick(lead.length > 0 ? lead : c.digits);
   while (out.length < length) out += pick(c.digits);
   return out;
+}
+
+function sentenceCase(p: string): string {
+  const trimmed = p.trim();
+  const ended = /[.?!']$/.test(trimmed) ? trimmed : `${trimmed}.`;
+  return capitalise(ended);
+}
+
+/** A number that reads right before a plural word: never just 1. */
+function plural(c: Ctx): string {
+  for (let i = 0; i < 20; i++) {
+    const n = number(c, 1, 2);
+    if (n !== '1') return n;
+  }
+  return number(c, 2, 2);
 }
 
 function capitalise(w: string): string {
