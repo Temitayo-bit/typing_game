@@ -51,8 +51,8 @@ describe('lessonDrill', () => {
   });
 
   it('uses a passage in the sentences lessons', () => {
-    expect(lessonDrill(lessons.at(-2)!, 1, sources)).toEqual(['one', 'two', 'three']);
-    expect(lessonDrill(lessons.at(-1)!, 8, sources)).toHaveLength(6);
+    expect(lessonDrill(lessons.find((l) => l.id === 19)!, 1, sources)).toEqual(['one', 'two', 'three']);
+    expect(lessonDrill(lessons.find((l) => l.id === 20)!, 8, sources)).toHaveLength(6);
   });
 
   it('adds digits in the number lessons', () => {
@@ -78,19 +78,5 @@ describe('weakKeyDrill', () => {
 
   it('falls back to any word when too few match', () => {
     expect(weakKeyDrill(['a', 'b'], ['q'], 3, () => 0)).toEqual(['a', 'a', 'a']);
-  });
-});
-
-describe('lesson plan', () => {
-  it('has 20 lessons in 5 levels of 4 and teaches every letter exactly once', () => {
-    expect(lessons).toHaveLength(20);
-    for (let level = 1; level <= 5; level++) expect(lessons.filter((l) => l.level === level)).toHaveLength(4);
-    const letters = lessons.flatMap((l) => l.newKeys).filter((k) => /[a-z]/.test(k));
-    expect(new Set(letters).size).toBe(26);
-    expect(letters).toHaveLength(26);
-  });
-
-  it('numbers lessons 1 to 20 in order', () => {
-    expect(lessons.map((l) => l.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
   });
 });

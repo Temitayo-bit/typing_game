@@ -2,7 +2,7 @@ export type Finger =
   | 'left pinky' | 'left ring' | 'left middle' | 'left index'
   | 'right index' | 'right middle' | 'right ring' | 'right pinky' | 'thumb';
 
-export const keyboardRows = ['1234567890', 'qwertyuiop', "asdfghjkl;'", 'zxcvbnm,./'];
+export const keyboardRows = ['1234567890-=', 'qwertyuiop[]', "asdfghjkl;'", 'zxcvbnm,./'];
 
 const byFinger: Record<Finger, string> = {
   'left pinky': '1qaz',
@@ -12,7 +12,7 @@ const byFinger: Record<Finger, string> = {
   'right index': '67yhnujm',
   'right middle': '8ik,',
   'right ring': '9ol.',
-  'right pinky': "0p;/'",
+  'right pinky': "0p;/'-=[]",
   thumb: ' ',
 };
 
@@ -20,7 +20,11 @@ const fingerOf = new Map<string, Finger>(
   (Object.entries(byFinger) as [Finger, string][]).flatMap(([finger, keys]) => [...keys].map((k) => [k, finger])),
 );
 
-const shifted: Record<string, string> = { '?': '/', '!': '1', '"': "'", ':': ';' };
+/** US layout: the character Shift produces on each key. */
+const shifted: Record<string, string> = {
+  '!': '1', '@': '2', '#': '3', $: '4', '%': '5', '^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
+  _: '-', '+': '=', '{': '[', '}': ']', ':': ';', '"': "'", '<': ',', '>': '.', '?': '/',
+};
 
 /** The physical key for a character, and whether Shift is needed. */
 export function keyFor(char: string): { key: string; shift: boolean } {

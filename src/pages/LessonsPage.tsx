@@ -10,7 +10,7 @@ export function LessonsPage({ results, unlocked, go }: Props) {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="m-0 font-display text-[34px] font-semibold">Learn to type, one row at a time</h1>
-        <p className="m-0 mt-1 text-muted">20 lessons in 5 levels. Each lesson has {STEPS_PER_LESSON} practices, and 90% accuracy unlocks the next one.</p>
+        <p className="m-0 mt-1 text-muted">{lessons.length} lessons in {levels.length} levels. Each lesson has {STEPS_PER_LESSON} practices, and 90% accuracy unlocks the next one.</p>
       </div>
       {levels.map((level) => (
         <section key={level.id} className="flex flex-col gap-3">

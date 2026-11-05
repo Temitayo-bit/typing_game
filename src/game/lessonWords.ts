@@ -1,4 +1,5 @@
 import { keysUpTo, punctuationPool, STEP_WORDS, STEPS_PER_LESSON, type Lesson } from '../data/lessons';
+import { advancedDrill } from './advancedDrills';
 import type { Random } from './words';
 
 export type DrillSources = { words: readonly string[]; passages: readonly string[] };
@@ -15,6 +16,11 @@ export function lessonDrill(lesson: Lesson, step: number, sources: DrillSources,
   const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(random() * xs.length)]!;
 
   switch (lesson.kind) {
+    case 'patterns':
+    case 'symbols':
+    case 'speed':
+    case 'reading':
+      return advancedDrill({ ...lesson, kind: lesson.kind }, step, random);
     case 'keys': {
       const withNew = words.filter((w) => lesson.newKeys.some((k) => w.includes(k)));
       if (step <= 3) return letterGroups(allowed, lesson.newKeys, 0.85 - step * 0.1, count, random);
