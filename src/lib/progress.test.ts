@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { weakKeys } from './weakKeys';
 import { lessons } from '../data/lessons';
 import type { SavedResult } from './history';
 import { parseExport } from './history';
-import { activityByDay, dayStreak, isUnlocked, longestStreak, lessonStatus, nextStep, personalBest, topMissedKeys, unlockedStep } from './progress';
+import { activityByDay, dayStreak, isUnlocked, longestStreak, lessonStatus, nextStep, personalBest, unlockedStep } from './progress';
 
 function result(over: Partial<SavedResult>): SavedResult {
   return {
@@ -43,16 +44,9 @@ describe('dayStreak', () => {
   });
 });
 
-describe('topMissedKeys', () => {
-  it('sums misses across results', () => {
-    const rs = [result({ missedKeys: { e: 2, a: 1 } }), result({ missedKeys: { e: 1, t: 3 } })];
-    expect(topMissedKeys(rs, 2)).toEqual([['e', 3], ['t', 3]]);
-  });
-});
-
 describe('parseExport', () => {
   it('accepts a valid export, keeping every field and dropping ids', () => {
-    const full = result({ missedKeys: { e: 2 }, wpmBySecond: [30, 40] });
+    const full = result({ missedKeys: { e: 2 }, keyPresses: { e: 9, a: 4 }, wpmBySecond: [30, 40] });
     expect(parseExport({ version: 1, results: [{ ...full, id: 7 }] })).toEqual([full]);
   });
 
@@ -132,7 +126,7 @@ describe('empty history', () => {
   it('has no best, no streak and no missed keys', () => {
     expect(personalBest([], 'time-30')).toBeUndefined();
     expect(dayStreak([])).toBe(0);
-    expect(topMissedKeys([])).toEqual([]);
+    expect(weakKeys([])).toEqual([]);
   });
 
 });

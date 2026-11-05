@@ -103,7 +103,7 @@ export function parseExport(value: unknown): SavedResult[] {
 
 function parseResult(r: unknown): SavedResult | null {
   if (!isRecord(r)) return null;
-  const { wpm, rawWpm, accuracy, correctChars, typedChars, durationMs, missedKeys, wpmBySecond, mode, finishedAt, textKeys } = r;
+  const { wpm, rawWpm, accuracy, correctChars, typedChars, durationMs, missedKeys, keyPresses, wpmBySecond, mode, finishedAt, textKeys } = r;
   if (!isNumber(wpm) || !isNumber(rawWpm) || !isNumber(accuracy) || !isNumber(correctChars)) return null;
   if (!isNumber(typedChars) || !isNumber(durationMs) || !isNumber(finishedAt)) return null;
   if (!isModeKey(mode) || !isCountMap(missedKeys)) return null;
@@ -119,6 +119,7 @@ function parseResult(r: unknown): SavedResult | null {
     mode,
     missedKeys,
     wpmBySecond,
+    ...(isCountMap(keyPresses) && Object.keys(keyPresses).length > 0 ? { keyPresses } : {}),
     ...(isKeyList(textKeys) && textKeys.length > 0 ? { textKeys } : {}),
   };
 }

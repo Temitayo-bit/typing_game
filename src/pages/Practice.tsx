@@ -6,7 +6,8 @@ import { wordSource } from '../game/sources';
 import type { SavedResult } from '../lib/history';
 import { passagesIn, seenTexts } from '../lib/seen';
 import { engineMode, modeLabel, selectionKey, testRules, type ModeKey, type Selection } from '../lib/modes';
-import { personalBest, topMissedKeys, type StepRef } from '../lib/progress';
+import { personalBest, type StepRef } from '../lib/progress';
+import { weakKeys } from '../lib/weakKeys';
 
 type Props = {
   selection: Selection;
@@ -30,7 +31,7 @@ export function Practice({ selection, results, unlocked, onFinish, showKeyboard,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const seen = useMemo(() => seenTexts(results), [instance]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const makeWords = useMemo(() => wordSource(selection, unlocked, Math.random, topMissedKeys(results).map(([k]) => k), seen), [instance]);
+  const makeWords = useMemo(() => wordSource(selection, unlocked, Math.random, weakKeys(results).map((w) => w.key), seen), [instance]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mode = useMemo(() => engineMode(selection), [key]);
   // eslint-disable-next-line react-hooks/exhaustive-deps

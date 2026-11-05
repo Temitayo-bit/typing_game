@@ -60,14 +60,6 @@ export function dayStreak(results: readonly SavedResult[], now: Date = new Date(
   return streak;
 }
 
-export function topMissedKeys(results: readonly SavedResult[], limit = 5): [string, number][] {
-  const totals: Record<string, number> = {};
-  for (const r of results) {
-    for (const [key, n] of Object.entries(r.missedKeys)) totals[key] = (totals[key] ?? 0) + n;
-  }
-  return Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, limit);
-}
-
 function dayKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }

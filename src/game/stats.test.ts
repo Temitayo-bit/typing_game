@@ -50,6 +50,8 @@ describe('computeResult', () => {
     expect(r.rawWpm).toBe(24);
     expect(r.accuracy).toBe(91.7);
     expect(r.missedKeys).toEqual({ o: 1 });
+    // The wrong p and the right o both count as presses of o.
+    expect(r.keyPresses).toEqual({ h: 1, e: 1, l: 3, o: 3, ' ': 1, w: 1, r: 1, d: 1 });
   });
 
   it('reports cumulative wpm per whole second', () => {
