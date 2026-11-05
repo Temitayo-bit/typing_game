@@ -70,7 +70,9 @@ export function wordSource(
       if (!pack) throw new Error(`Unknown pack ${selection.packId}`);
       const passages = pack.passages.filter((p) => splitText(p).length > 0);
       const usable = passages.length > 0 ? passages : [commonWords.slice(0, 25).join(' ')];
-      return () => splitText(usable[Math.floor(random() * usable.length)]!);
+      // Walk through the pack from a random start, so "Next test" always brings a different passage.
+      let next = Math.floor(random() * usable.length);
+      return () => splitText(usable[next++ % usable.length]!);
     }
     case 'note': {
       const note = notes.find((n) => n.id === selection.noteId);

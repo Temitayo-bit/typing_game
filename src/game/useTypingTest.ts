@@ -70,8 +70,8 @@ export function useTypingTest(mode: Mode, makeWords: (count: number) => string[]
     },
     [mode, rules],
   );
-  const restart = useCallback(() => startWith(makeWords(INITIAL_WORDS)), [startWith, makeWords]);
   const targets0 = state.test.targets;
+  const restart = useCallback(() => startWith(freshWords(makeWords, targets0)), [startWith, makeWords, targets0]);
   const retry = useCallback(() => startWith(targets0), [startWith, targets0]);
 
   const { status } = state.test;
@@ -148,4 +148,12 @@ export function useTypingTest(mode: Mode, makeWords: (count: number) => string[]
   }, [status, restart, elapsed, mode]);
 
   return { test: state.test, result: state.result, elapsedMs, paused, capsLock, restart, retry };
+}
+
+/** New text for a restart, avoiding the text just typed when the source can give something else. */
+export function freshWords(makeWords: (count: number) => string[], current: readonly string[]): string[] {
+  const same = (words: readonly string[]) => words.join(' ') === current.slice(0, words.length).join(' ');
+  let words = makeWords(INITIAL_WORDS);
+  for (let tries = 0; tries < 5 && same(words); tries++) words = makeWords(INITIAL_WORDS);
+  return words;
 }

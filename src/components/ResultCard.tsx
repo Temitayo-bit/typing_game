@@ -82,7 +82,7 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
         </div>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Button onClick={onNext}>{lesson?.passed && lesson.hasNext ? 'Next practice' : 'Next test'}</Button>
+        <Button onClick={onNext}>{nextLabel(lesson)}</Button>
         <Button kind="soft" onClick={onRetry}>
           Retry same text
         </Button>
@@ -90,6 +90,13 @@ export function ResultCard({ result, modeLabel, previousBest, lesson, onNext, on
       </div>
     </section>
   );
+}
+
+function nextLabel(lesson: LessonOutcome | undefined): string {
+  if (!lesson) return 'Next test';
+  // A failed practice stays on the same step, so say so instead of promising the next one.
+  if (!lesson.passed) return 'Try again';
+  return lesson.hasNext ? 'Next practice' : 'Go again';
 }
 
 function Big({ label, value, size, accent }: { label: string; value: string | number; size: string; accent?: boolean }) {
