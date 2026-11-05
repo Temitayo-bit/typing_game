@@ -29,6 +29,10 @@ describe('sync', () => {
     expect(fromRows([row])[0]?.finishedAt).toBe(1000);
   });
 
+  it('skips rows from a newer version of the app instead of failing the sync', () => {
+    expect(fromRows([{ ...toRow(r()), mode: 'future-mode' }, toRow(r({ mode: 'exam-2' }))])).toEqual([r({ mode: 'exam-2' })]);
+  });
+
   it('rejects malformed rows instead of saving them', () => {
     expect(() => fromRows([{ ...toRow(r()), accuracy: 'high' as unknown as number }])).toThrow();
   });

@@ -15,6 +15,7 @@ import { applySettings, resumeMusicOnGesture, switchSettings } from './lib/sound
 import { HomePage } from './pages/HomePage';
 import { LessonsPage } from './pages/LessonsPage';
 import { LessonView } from './pages/LessonView';
+import { ExamView } from './pages/ExamView';
 import { NotesPage } from './pages/NotesPage';
 import { PracticePage } from './pages/PracticePage';
 import { ProgressPage } from './pages/ProgressPage';
@@ -183,8 +184,18 @@ export default function App({ account }: { account: Account | null }) {
           <LessonsPage results={results} unlocked={unlocked} go={go} />
         ) : route.page === 'lesson' ? (
           <LessonView key={route.lessonId} lessonId={route.lessonId} results={results} unlocked={unlocked} go={go} onFinish={onFinish} />
+        ) : route.page === 'exam' ? (
+          <ExamView
+            key={route.level}
+            level={route.level}
+            results={results}
+            unlocked={unlocked}
+            go={go}
+            onFinish={onFinish}
+            onDrillKeys={(keys) => practise({ kind: 'weak', keys })}
+          />
         ) : route.page === 'progress' ? (
-          <ProgressPage results={results} practise={practise} onImported={refresh} />
+          <ProgressPage results={results} unlocked={unlocked} go={go} practise={practise} onImported={refresh} />
         ) : route.page === 'profile' ? (
           <ProfilePage account={account} />
         ) : (

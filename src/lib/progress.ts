@@ -1,6 +1,7 @@
+import { EXAM_MIN_CHARS, lessonsInLevel, levelOf } from '../data/exams';
 import { lessons, PASS_ACCURACY, STEPS_PER_LESSON } from '../data/lessons';
 import type { SavedResult } from './history';
-import type { ModeKey } from './modes';
+import { parseExamKey, type ModeKey } from './modes';
 
 export function personalBest(results: readonly SavedResult[], mode: ModeKey): SavedResult | undefined {
   let best: SavedResult | undefined;
@@ -77,14 +78,45 @@ const stepIndex = ({ lessonId, step }: StepRef) => (lessonId - 1) * STEPS_PER_LE
 const fromIndex = (i: number): StepRef => ({ lessonId: Math.floor(i / STEPS_PER_LESSON) + 1, step: (i % STEPS_PER_LESSON) + 1 });
 const LAST_INDEX = lessons.length * STEPS_PER_LESSON - 1;
 
-/** The furthest step she can open: one past the furthest step she has passed. */
-export function unlockedStep(results: readonly SavedResult[]): StepRef {
+function furthestPassed(results: readonly SavedResult[]): number {
   let furthest = -1;
   for (const r of results) {
     const ref = parseLessonKey(r.mode);
     if (ref && passedStep(r)) furthest = Math.max(furthest, stepIndex(ref));
   }
-  return fromIndex(Math.min(furthest + 1, LAST_INDEX));
+  return furthest;
+}
+
+/**
+ * The furthest step she can open: one past the furthest step she has passed, except that
+ * a new level waits for the previous level's exam. Progress made before exams existed
+ * stays open; those levels just show their exam as still to take.
+ */
+export function unlockedStep(results: readonly SavedResult[]): StepRef {
+  const furthest = furthestPassed(results);
+  const next = Math.min(furthest + 1, LAST_INDEX);
+  if (furthest >= 0 && next > furthest) {
+    const level = levelOf(fromIndex(furthest).lessonId)!;
+    const crosses = levelOf(fromIndex(next).lessonId) !== level;
+    // A try at the next lesson means it was already open before exams existed.
+    const tried = results.some((r) => { const ref = parseLessonKey(r.mode); return ref !== null && stepIndex(ref) === next; });
+    if (crosses && !tried && !passedExam(results, level)) return fromIndex(furthest);
+  }
+  return fromIndex(next);
+}
+
+export function examPassed(result: Pick<SavedResult, 'accuracy' | 'correctChars'>): boolean {
+  return result.accuracy >= PASS_ACCURACY && result.correctChars >= EXAM_MIN_CHARS;
+}
+
+export function passedExam(results: readonly SavedResult[], level: number): boolean {
+  return results.some((r) => parseExamKey(r.mode) === level && examPassed(r));
+}
+
+/** An exam opens once the last practice of its level has been passed. */
+export function examOpen(results: readonly SavedResult[], level: number): boolean {
+  const last = lessonsInLevel(level).at(-1);
+  return last !== undefined && furthestPassed(results) >= stepIndex({ lessonId: last.id, step: STEPS_PER_LESSON });
 }
 
 export function isUnlocked(ref: StepRef, unlocked: StepRef): boolean {

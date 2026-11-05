@@ -64,4 +64,12 @@ describe('newMilestones', () => {
   it('counts a lesson drill as the first test', () => {
     expect(newMilestones([], [result({ mode: 'lesson-1-1' })]).map((m) => m.id)).toEqual(['first-test']);
   });
+
+  it('celebrates a passed exam once, and not a failed one', () => {
+    const base = [result({})];
+    expect(newMilestones(base, [...base, result({ mode: 'exam-1', accuracy: 80 })])).toEqual([]);
+    const passed = [...base, result({ mode: 'exam-1', accuracy: 95 })];
+    expect(newMilestones(base, passed).map((m) => m.id)).toEqual(['exam-1']);
+    expect(newMilestones(passed, [...passed, result({ mode: 'exam-1', accuracy: 99 })])).toEqual([]);
+  });
 });

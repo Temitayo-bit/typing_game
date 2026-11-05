@@ -3,7 +3,7 @@ import { weakKeys } from './weakKeys';
 import { lessons } from '../data/lessons';
 import type { SavedResult } from './history';
 import { parseExport } from './history';
-import { activityByDay, dayStreak, isUnlocked, longestStreak, lessonStatus, nextStep, personalBest, unlockedStep } from './progress';
+import { activityByDay, dayStreak, examOpen, isUnlocked, longestStreak, lessonStatus, nextStep, passedExam, personalBest, unlockedStep } from './progress';
 
 function result(over: Partial<SavedResult>): SavedResult {
   return {
@@ -91,8 +91,8 @@ describe('lesson steps', () => {
     expect(unlockedStep([pass(`lesson-${last}-8`)])).toEqual({ lessonId: last, step: 8 });
   });
 
-  it('carries on into the advanced levels after the old final lesson', () => {
-    expect(unlockedStep([pass('lesson-20-8')])).toEqual({ lessonId: 21, step: 1 });
+  it('carries on into the advanced levels after the old final lesson once level 5 is passed', () => {
+    expect(unlockedStep([pass('lesson-20-8'), pass('exam-5')])).toEqual({ lessonId: 21, step: 1 });
   });
 
   it('ignores results for lessons that do not exist', () => {
@@ -143,5 +143,61 @@ describe('longestStreak and activity', () => {
   it('counts tests per day, oldest first', () => {
     const rs = [day(2026, 10, 5), day(2026, 10, 5, 8), day(2026, 10, 3)].map((t) => result({ finishedAt: t }));
     expect(activityByDay(rs, 3, new Date(2026, 10, 5, 22))).toEqual([1, 0, 2]);
+  });
+});
+
+describe('level exams', () => {
+  const pass = (mode: SavedResult['mode'], over: Partial<SavedResult> = {}) => result({ mode, accuracy: 95, ...over });
+
+  it('holds the next level until the exam is passed', () => {
+    expect(unlockedStep([pass('lesson-4-8')])).toEqual({ lessonId: 4, step: 8 });
+    expect(unlockedStep([pass('lesson-4-8'), pass('exam-1')])).toEqual({ lessonId: 5, step: 1 });
+  });
+
+  it('needs 90% accuracy and enough typing to pass, like a practice', () => {
+    expect(passedExam([pass('exam-1', { accuracy: 89.9 })], 1)).toBe(false);
+    expect(passedExam([pass('exam-1', { correctChars: 3 })], 1)).toBe(false);
+    expect(passedExam([pass('exam-1', { accuracy: 90 })], 1)).toBe(true);
+    expect(passedExam([pass('exam-2')], 1)).toBe(false);
+    expect(unlockedStep([pass('lesson-4-8'), pass('exam-1', { accuracy: 80 })])).toEqual({ lessonId: 4, step: 8 });
+  });
+
+  it('keeps progress made before exams existed open', () => {
+    expect(unlockedStep([pass('lesson-6-3')])).toEqual({ lessonId: 6, step: 4 });
+    expect(examOpen([pass('lesson-6-3')], 1)).toBe(true);
+  });
+
+  it('opens an exam only after the last practice of its level', () => {
+    expect(examOpen([], 1)).toBe(false);
+    expect(examOpen([pass('lesson-4-7')], 1)).toBe(false);
+    expect(examOpen([pass('lesson-4-8')], 1)).toBe(true);
+    expect(examOpen([pass('lesson-4-8')], 2)).toBe(false);
+  });
+
+  it('ignores exams for levels that do not exist', () => {
+    expect(passedExam([pass('exam-11')], 11)).toBe(false);
+    expect(passedExam([pass('exam-0')], 0)).toBe(false);
+  });
+
+  it('needs more than a few words in an exam, so waiting out the clock does not pass', () => {
+    expect(passedExam([pass('exam-1', { correctChars: 59 })], 1)).toBe(false);
+    expect(passedExam([pass('exam-1', { correctChars: 60 })], 1)).toBe(true);
+  });
+
+  it('keeps a lesson open that was already being tried before exams existed', () => {
+    const rs = [pass('lesson-4-8'), pass('lesson-5-1', { accuracy: 60 })];
+    expect(unlockedStep(rs)).toEqual({ lessonId: 5, step: 1 });
+  });
+
+  it('holds an old player at the next boundary too, and lets exam 2 through while exam 1 is owed', () => {
+    expect(unlockedStep([pass('lesson-8-8')])).toEqual({ lessonId: 8, step: 8 });
+    expect(unlockedStep([pass('lesson-8-8'), pass('exam-2')])).toEqual({ lessonId: 9, step: 1 });
+  });
+
+  it('opens the final exam after the last practice and stays on the last step after it', () => {
+    const last = pass(`lesson-${lessons.length}-8`);
+    expect(examOpen([last], 10)).toBe(true);
+    expect(unlockedStep([last])).toEqual({ lessonId: lessons.length, step: 8 });
+    expect(unlockedStep([last, pass('exam-10')])).toEqual({ lessonId: lessons.length, step: 8 });
   });
 });

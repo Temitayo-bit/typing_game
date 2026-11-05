@@ -1,7 +1,7 @@
-import { lessons, STEPS_PER_LESSON } from '../data/lessons';
+import { lessons, levels, STEPS_PER_LESSON } from '../data/lessons';
 import type { SavedResult } from './history';
 import { isSpeedTest } from './modes';
-import { longestStreak, passedStepsOf } from './progress';
+import { longestStreak, passedExam, passedStepsOf } from './progress';
 
 export type Milestone = { id: string; title: string };
 
@@ -23,6 +23,16 @@ const rules: Rule[] = [
     title: `Lesson ${l.id} complete: ${l.title}`,
     reached: (rs: readonly SavedResult[]) => passedStepsOf(rs, l.id).size === STEPS_PER_LESSON,
   })),
+  ...levels.map((l) => ({
+    id: `exam-${l.id}`,
+    title: `Level ${l.id} exam passed: ${l.title}`,
+    reached: (rs: readonly SavedResult[]) => passedExam(rs, l.id),
+  })),
+  {
+    id: 'graduate',
+    title: 'Every exam passed. Your certificate is ready!',
+    reached: (rs) => levels.every((l) => passedExam(rs, l.id)),
+  },
   ...[3, 7, 14, 30].map((days) => ({
     id: `streak-${days}`,
     title: `${days} days in a row`,

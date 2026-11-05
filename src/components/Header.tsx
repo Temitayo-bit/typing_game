@@ -4,7 +4,7 @@ import { Heart } from './ui';
 const links: { label: string; route: Route; match: Route['page'][] }[] = [
   { label: 'Home', route: { page: 'home' }, match: ['home'] },
   { label: 'Practice', route: { page: 'practice' }, match: ['practice'] },
-  { label: 'Lessons', route: { page: 'lessons' }, match: ['lessons', 'lesson'] },
+  { label: 'Lessons', route: { page: 'lessons' }, match: ['lessons', 'lesson', 'exam'] },
   { label: 'Progress', route: { page: 'progress' }, match: ['progress'] },
   { label: 'From me', route: { page: 'notes' }, match: ['notes'] },
 ];
