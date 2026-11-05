@@ -53,3 +53,18 @@ export const fingerColor: Record<Finger, string> = {
   'right pinky': '#FFD6E5',
   thumb: '#FFF0F5',
 };
+
+/** Every finger pressing down for a character: its key's finger, plus the opposite pinky when Shift is needed. */
+export function fingersFor(char: string): Finger[] {
+  const { key, shift } = keyFor(char);
+  const finger = fingerFor(key);
+  if (!finger) return [];
+  return shift ? [finger, `${shiftHand(key)} pinky` as const] : [finger];
+}
+
+/** Where each finger rests between presses. */
+export const homeKey: Record<Finger, string> = {
+  'left pinky': 'a', 'left ring': 's', 'left middle': 'd', 'left index': 'f',
+  'right index': 'j', 'right middle': 'k', 'right ring': 'l', 'right pinky': ';',
+  thumb: ' ',
+};
